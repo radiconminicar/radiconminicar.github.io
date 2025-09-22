@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Blue - ヒントページ</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: sans-serif;
+        background: #f0f0f0;
+        padding: 20px;
+      }
+      .button-container {
+        background: #ddd;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      button {
+        margin: 5px;
+      }
+      .hint-section {
+        margin: 10px 0;
+        width: 600px; /* 固定横幅 */
+        text-align: left;
+      }
+      details {
+        margin: 5px 0;
+        padding: 5px 10px;
+        background: #fff;
+        border-radius: 5px;
+        box-shadow: 0 0 3px rgba(0,0,0,0.2);
+      }
+      h1 {
+        margin-bottom: 20px;
+      }
+      .hint-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+    </style>
+    <script>
+      const hints = {
+        1: ["一番上の例示では「鳥居」が「鳥」に、次の例示では「ボウル」が「棒」になっているようです。ここから法則を推測しましょう。", "どうやら矢印は「最後の文字を消す」という法則を表しているようです。", "最後の左のイラストは「魚」を表しています。"],
+        2: ["関東地方には群馬、栃木、茨城、埼玉、東京、千葉、神奈川と7つの都道府県があります。これらを枠に埋めてみましょう。", "枠の大きさから、東京と千葉が埋まる場所はすぐに分かります。交点の文字をヒントにして埋めていきましょう。", "枠を埋めたら、対応する数字に書かれた文字を拾いましょう。"],
+        3: ["天秤でひらがなの重さを比べているようです。", "右側は「重いち」で「おもち」を表しているようです。同様に考えると左側はどうなるでしょうか？", "左側は「軽いた」を表しています。"],
+        4: ["この問題は到底解けそうにありません。先に他の4問を解いてしまいましょう。ヒント2以降は他の4問が解けてから閲覧することを推奨します。", "問題切替ボタンが置かれている囲みをよく見てみましょう。この囲みは今までに登場しているはずです。", "問題切替ボタンが置かれているのは、第5問と同様の囲いの中のようです。ここから、第1問～第5問の解答を使ってループするしりとりを作ることができそうだと分かります。これによって第4問の解答の1文字目と3文字目が確定します。"],
+        5: ["囲いの中の文字でしりとりをしてみましょう。すべての単語を使えば、輪のようにループするはずです。", "ループするということは、どの単語から始めればよいのかが分からないということでもあります。下の例示をヒントにどの単語を最初に持ってくればよいかを考えましょう。", "[3-2]=ば、とありますが、囲いの中の単語で「ば」が入っているのは「翼」しかありません。よって翼が3単語目に来るように並べればよさそうです。"]
+      };
+
+      function showHints(num) {
+        const container = document.getElementById('hintsContainer');
+        container.innerHTML = '';
+
+        const title = document.createElement('div');
+        title.className = 'hint-title';
+        title.textContent = `第${num}問のヒント`;
+        container.appendChild(title);
+
+        hints[num].forEach((hint, index) => {
+          const details = document.createElement('details');
+          const summary = document.createElement('summary');
+          summary.textContent = `ヒント ${index + 1}`;
+          const content = document.createElement('div');
+          content.textContent = hint;
+          details.appendChild(summary);
+          details.appendChild(content);
+          container.appendChild(details);
+        });
+      }
+
+      window.onload = () => {
+        showHints(1);
+      };
+    </script>
+  </head>
+  <body>
+    <h1>Blue - ヒントページ</h1>
+
+    <div class="button-container">
+      <button onclick="showHints(1)">第1問</button>
+      <button onclick="showHints(2)">第2問</button>
+      <button onclick="showHints(3)">第3問</button>
+      <button onclick="showHints(4)">第4問</button>
+      <button onclick="showHints(5)">第5問</button>
+    </div>
+
+    <div id="hintsContainer" class="hint-section"></div>
+  </body>
+</html>
