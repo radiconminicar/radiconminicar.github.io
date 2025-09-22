@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Blue</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: sans-serif;
+        background: #f0f0f0;
+        padding: 20px;
+      }
+      .question {
+        margin: 10px 0;
+        text-align: center;
+      }
+      .result {
+        display: inline-block;
+        width: 20px;
+        font-weight: bold;
+        color: red;
+      }
+      .result.correct {
+        color: green;
+      }
+      img {
+        max-width: 600px; /* 1.5倍程度に拡大 */
+        display: block;
+        margin: 20px 0;
+      }
+      .button-container {
+        background: #aaa;
+        padding: 20px;
+        border: 2px dashed #000;
+        box-shadow: 0 0 0 5px #aaa;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      button {
+        margin: 5px;
+      }
+      #congrats {
+        margin-top: 20px;
+        font-size: 1.5em;
+        font-weight: bold;
+        color: blue;
+        text-align: center;
+      }
+      .hint {
+        font-size: 0.9em;
+        color: #333;
+        margin-bottom: 10px;
+      }
+    </style>
+    <script>
+      const answers = {
+        1: "さか",
+        2: "たいやき",
+        3: "かるた",
+        4: "あおさ",
+        5: "きゃびあ"
+      };
+
+      function showImage(num) {
+        const img = document.getElementById("quizImage");
+        img.src = "image" + num + ".png";
+      }
+
+      function checkAnswer(num) {
+        const input = document.getElementById("input" + num).value.trim();
+        const result = document.getElementById("result" + num);
+        if (input === answers[num]) {
+          result.textContent = "〇";
+          result.classList.add("correct");
+        } else {
+          result.textContent = "×";
+          result.classList.remove("correct");
+        }
+        checkAllCorrect();
+      }
+
+      function checkAllCorrect() {
+        let allCorrect = true;
+        for (let i = 1; i <= 5; i++) {
+          if (document.getElementById("result" + i).textContent !== "〇") {
+            allCorrect = false;
+            break;
+          }
+        }
+        const congratsDiv = document.getElementById("congrats");
+        if (allCorrect) {
+          congratsDiv.innerHTML = "クリア！<br><button onclick=\"tweetClear()\">クリアをツイート</button>";
+        } else {
+          congratsDiv.innerHTML = "";
+        }
+      }
+
+      function tweetClear() {
+        const url = encodeURIComponent(window.location.href);
+        const text = encodeURIComponent("軽謎「Blue」をクリア！");
+        window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
+      }
+    </script>
+  </head>
+
+  <body>
+    <h1>Blue</h1>
+
+    <!-- 画像表示部分 -->
+    <img id="quizImage" src="image1.png" alt="問題画像">
+
+    <!-- ボタンで画像切り替え（囲み） -->
+    <div class="button-container">
+      <button onclick="showImage(1)">第1問</button>
+      <button onclick="showImage(2)">第2問</button>
+      <button onclick="showImage(3)">第3問</button>
+      <button onclick="showImage(4)">第4問</button>
+      <button onclick="showImage(5)">第5問</button>
+    </div>
+
+    <!-- 解答のヒント -->
+    <div class="hint">解答はひらがなで入力</div>
+
+    <!-- 解答欄 -->
+    <div class="question">
+      <span id="result1">×</span>
+      <input type="text" id="input1" placeholder="第1問">
+      <button onclick="checkAnswer(1)">送信</button>
+    </div>
+    <div class="question">
+      <span id="result2">×</span>
+      <input type="text" id="input2" placeholder="第2問">
+      <button onclick="checkAnswer(2)">送信</button>
+    </div>
+    <div class="question">
+      <span id="result3">×</span>
+      <input type="text" id="input3" placeholder="第3問">
+      <button onclick="checkAnswer(3)">送信</button>
+    </div>
+    <div class="question">
+      <span id="result4">×</span>
+      <input type="text" id="input4" placeholder="第4問">
+      <button onclick="checkAnswer(4)">送信</button>
+    </div>
+    <div class="question">
+      <span id="result5">×</span>
+      <input type="text" id="input5" placeholder="第5問">
+      <button onclick="checkAnswer(5)">送信</button>
+    </div>
+
+    <div id="congrats"></div>
+  </body>
+</html>
