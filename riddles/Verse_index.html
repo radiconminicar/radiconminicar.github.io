@@ -1,0 +1,129 @@
+<!--
+【最終問題】
+プールにて懺悔せよ
+　　　　　　答えは
+-->
+
+<!--ここから下は謎解きに一切関係ありません。本当です。-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>hogehoge example</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; padding: 24px; }
+    .line { font-size: 1.1rem; }
+    .token { font-weight: 700; color: #1f2937; }
+    .foo { color: red}
+    .hello {color:red}
+  </style>
+</head>
+<body>
+  <h1>
+    Verse
+  </h1>
+  <p>
+    <ul>
+      <li>軽めのWeb謎解き「Verse」です。</li>
+      <li>最終問題に正解したらクリアとなります。</li>
+      <li>検索が必要となる謎はありません。</li>
+      <li>ソースコードの閲覧は<span id="token" class="token foo">禁止</span>です。</li>
+    </ul>
+  </p>
+  <p>
+    <a href="Verse.html">スタート</a>
+  </p>
+
+  <script>
+    (function () {
+      // モダンな方法でナビゲーションの種類を取得（対応ブラウザが増えている）
+      function navigationIsReload() {
+        try {
+          const entries = performance.getEntriesByType && performance.getEntriesByType('navigation');
+          if (entries && entries.length > 0) {
+            return entries[0].type === 'reload';
+          }
+          // フォールバック（古いブラウザ）
+          if (performance.navigation && typeof performance.navigation.type === 'number') {
+            // 1 はリロード (PerformanceNavigation.TYPE_RELOAD)
+            return performance.navigation.type === 1;
+          }
+        } catch (e) {
+          // 無視して false を返す
+        }
+        return false;
+      }
+
+      // ページ表示時にチェックしてトークンを書き換える
+      window.addEventListener('load', function () {
+        const el = document.getElementById('token');
+        if (navigationIsReload() && el) {
+          // 既存の書き換え
+          el.textContent = '可能';
+          el.classList.remove('foo');
+          el.classList.add('hello');
+
+          // 新しい li を追加
+          const ul = el.closest('ul'); // token の親 ul を取得
+          if (ul) {
+            const newLi = document.createElement('li');
+            newLi.textContent = '(※謎解きには関係ありません。)スマートフォン等でソースコードの見方が分からない場合は、「ソースコード 閲覧 サイト」などで調べると、ソースコードの閲覧ができるWebサイトがヒットします。';
+            ul.appendChild(newLi);
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

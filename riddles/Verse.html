@@ -1,0 +1,225 @@
+<!--
+【最終問題】
+0～9
+セルメニ
+-->
+
+<!--ここから下は謎解きに一切関係ありません。本当です。-->
+<!--というかネタバレしか含まないため、見ないことを強く強く推奨します。-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verse</title>
+<style>
+  body {
+    font-family: "Yu Gothic", sans-serif;
+    text-align: center;
+    background-color: #f5f5f5;
+  }
+  h1 {
+    margin-top: 30px;
+  }
+  .description {
+    margin-bottom: 20px;
+  }
+  .image-grid {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+  }
+  .image-grid img {
+    width: 400px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #999;
+  }
+  .keyword-box {
+    margin-top: 30px;
+  }
+  input[type="text"] {
+    padding: 8px;
+    width: 220px;
+    font-size: 16px;
+  }
+  button {
+    padding: 8px 16px;
+    font-size: 16px;
+    margin-left: 5px;
+  }
+  .correct {
+    color: green;
+    font-weight: bold;
+    margin-top: 20px;
+  }
+  .text-block {
+    color: black;
+    white-space: pre-line;
+    margin-top: 10px;
+    line-height: 1;
+  }
+  .red {
+    color: red;
+  }
+  #inverter {
+    display: block;
+    margin: 20px auto;
+    width: 50px; /* ← サイズ調整はここ */
+    cursor: pointer;
+  }
+  .clear {
+    color: blue;
+    font-size: 2em;
+    font-weight: bold;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Verse</h1>
+<p class="description">まずは第1問～第5問を解き、答えが出たらまとめの問題からキーワードを導こう。</p>
+
+<div class="image-grid" id="imageGrid">
+  <img src="Verse_images/q1.png" id="q1">
+  <img src="Verse_images/q2.png" id="q2">
+  <img src="Verse_images/q3.png" id="q3">
+  <img src="Verse_images/q4.png" id="q4">
+  <img src="Verse_images/q5.png" id="q5">
+  <img src="Verse_images/qm.png" id="qm">
+</div>
+
+<div class="keyword-box">
+  <p>キーワードが導けたら下のボックスに入力して送信ボタンを押そう。</p>
+  <input type="text" id="answer" placeholder="解答をひらがなで入力">
+  <button onclick="checkAnswer()">送信</button>
+</div>
+
+<div id="result"></div>
+
+<script>
+let inverted = false;
+let inverterShown = false;
+let secondStageCleared = false;
+let finalCleared = false;
+
+function checkAnswer() {
+  const ans = document.getElementById("answer").value.trim();
+  const resultDiv = document.getElementById("result");
+
+  // 第1段階：「たーみなる」
+  if (ans === "たーみなる" && !inverterShown) {
+    inverterShown = true;
+    resultDiv.innerHTML = `
+      <div class="correct">正解！</div>
+      <div class="text-block">
+        装置「インバーター」を発見した。<br>
+        下のボタンを押すと、近くにある<span class="orange">シアン色</span>のものが反転する。<br>
+        「反転」の意味は適用されるものによるようだ。
+      </div>
+      <img src="Verse_images/inverter.png" id="inverter" onclick="invertImages()">
+    `;
+  }
+
+  // 第2段階：「きかいてき」
+  else if (ans === "きかいてき" && inverterShown && inverted && !secondStageCleared) {
+    secondStageCleared = true;
+    resultDiv.innerHTML += `
+      <div class="correct">正解！</div>
+      <div class="text-block" id="text2">
+        インバーターはどうやらもともと2つで1セットだったようだ。<br>
+        逆回りのインバーターも存在し、そちらは赤色のものを反転させられる。
+      </div>
+    `;
+  }
+
+  // 第3段階：「るてん」
+  else if (ans === "るてん" && secondStageCleared && !finalCleared) {
+    finalCleared = true;
+    resultDiv.innerHTML += `
+      <div class="clear">クリア！</div>
+      <button onclick="tweetClear()">クリアをツイート</button>
+    `;
+  }
+
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: "smooth"
+  });
+}
+
+function invertImages() {
+  for (let i = 1; i <= 5; i++) {
+    const img = document.getElementById("q" + i);
+    // 現在の画像が _2 付きかどうかで切り替え
+    if (img.src.includes("_2.png")) {
+      img.src = `Verse_images/q${i}.png`;
+    } else {
+      img.src = `Verse_images/q${i}_2.png`;
+    }
+  }
+  inverted = !inverted; // 状態を反転させる
+}
+
+function tweetClear() {
+  const url = encodeURIComponent("https://radiconminicar.github.io/riddles/Verse_index.html");
+  const text = encodeURIComponent("軽謎「Verse」をクリア！ #軽謎Verse");
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
+}
+</script>
+
+</body>
+</html>
