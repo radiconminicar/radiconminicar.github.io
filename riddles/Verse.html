@@ -83,7 +83,9 @@
     align-items: center;
   }
   .image-grid img {
-    width: 400px;
+    width: 400px;       /* 基本の幅（PC向け） */
+    max-width: 45vw;    /* スマホでも画面幅の45%を上限に */
+    height: auto;       /* 高さは自動で比率を維持 */
     border-radius: 10px;
     box-shadow: 0 0 10px #999;
   }
