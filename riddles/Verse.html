@@ -189,7 +189,7 @@ function checkAnswer() {
   }
 
   // 第3段階：「るてん」
-  else if (ans === "るてん" && secondStageCleared && !finalCleared) {
+  else if (ans === "るてん" && !finalCleared) {
     finalCleared = true;
     resultDiv.innerHTML += `
       <div class="clear">クリア！</div>
