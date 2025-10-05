@@ -135,15 +135,6 @@
     margin-top: 6px;
     min-height: 1.5em;
   }
-  @media (max-width: 600px) {
-    .image-grid {
-      gap: 10px; /* 画像間の縦横間隔を小さくする */
-    }
-    .image-cell {
-      min-height: 60px; /* スマホ向けに高さを縮める */
-    }
-  }
-
 </style>
 </head>
 <body>
@@ -248,7 +239,14 @@
     margin-top: 6px;
     min-height: 1.2em; /* 正解テキスト領域を確保してズレ防止 */
   }
-
+  @media (max-width: 600px) {
+    .image-grid {
+      gap: 10px; /* 画像間の縦横間隔を小さくする */
+    }
+    .image-cell {
+      min-height: 60px; /* スマホ向けに高さを縮める */
+    }
+  }
 </style>
 
 <script>
