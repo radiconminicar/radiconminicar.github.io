@@ -56,7 +56,7 @@
 
 
 
-
+<!-- ChatGPTにほとんど書かせたため，内容は理解していません -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -68,6 +68,7 @@
     font-family: "Yu Gothic", sans-serif;
     text-align: center;
     background-color: #f5f5f5;
+    padding-bottom: 100px;
   }
   h1 {
     margin-top: 30px;
@@ -230,23 +231,16 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 260px; /* ← 画像＋正解表示の分だけ高さを固定 */
     position: relative;
   }
   .answer-text {
     color: green;
     font-weight: bold;
     margin-top: 6px;
-    min-height: 1.2em; /* 正解テキスト領域を確保してズレ防止 */
+    min-height: 1.7em; /* 正解テキスト領域を常に確保 */
+    visibility: hidden; /* 初期は非表示 */
   }
-  @media (max-width: 600px) {
-    .image-grid {
-      gap: 10px; /* 画像間の縦横間隔を小さくする */
-    }
-    .image-cell {
-      min-height: 60px; /* スマホ向けに高さを縮める */
-    }
-  }
+
 </style>
 
 <script>
@@ -279,8 +273,14 @@
       wrapper.classList.add("image-cell");
       img.parentNode.insertBefore(wrapper, img);
       wrapper.appendChild(img);
+
+      // ★ここを追加：初期状態の answer-text を作る
+      const answerDiv = document.createElement("div");
+      answerDiv.classList.add("answer-text");
+      wrapper.appendChild(answerDiv);
     });
   });
+
 
   // 各画像クリックでモーダルを開く
   for (let i = 1; i <= 5; i++) {
@@ -294,59 +294,78 @@
     });
   }
 
+// qm画像クリックで拡大モーダル（解答欄なし）
+  const qmImg = document.getElementById("qm");
+  qmImg.addEventListener("click", () => {
+    currentId = null; // 解答判定は不要
+    modalImg.src = qmImg.src;
+    
+    // 解答欄を非表示
+    const modalAnswer = modal.querySelector(".modal-answer");
+    modalAnswer.style.display = "block"; // 表示するのはメッセージだけ
+    modalAnswer.innerHTML = `
+      <p style="font-size: 0.9em; color: #555; margin-top: 8px;">
+        画面外をクリックまたはタップで閉じる
+      </p>
+    `;
+
+    modal.classList.add("show");
+  });
+
   // モーダル外クリックで閉じる
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
       modal.classList.remove("show");
+
+      // トランジション終了後に解答欄を表示に戻す
+      modal.addEventListener("transitionend", function handler() {
+        const modalAnswer = modal.querySelector(".modal-answer");
+        modalAnswer.style.display = "block";
+        modal.removeEventListener("transitionend", handler);
+      });
     }
   });
+
+
+  function showAnswer(cell, val) {
+    let answerDiv = cell.querySelector(".answer-text");
+    if (!answerDiv) {
+      answerDiv = document.createElement("div");
+      answerDiv.classList.add("answer-text");
+      cell.appendChild(answerDiv);
+    }
+    answerDiv.textContent = "正解：" + val;
+    answerDiv.style.visibility = "visible"; // 表示
+  }
 
   // 送信ボタン
   modalButton.addEventListener("click", () => {
     const val = modalInput.value.trim();
     if (!currentId) return;
 
-    // 画像が _2 付きの場合も判定できるように
     const baseId = currentId.replace("q", "");
     const img = document.getElementById(currentId);
     const cell = img.closest(".image-cell");
 
-  // 不正解メッセージ要素の準備（モーダル内に表示）
-  let incorrect = modal.querySelector(".incorrect");
-  if (!incorrect) {
-    incorrect = document.createElement("div");
-    incorrect.classList.add("incorrect");
-    modal.querySelector(".modal-answer").appendChild(incorrect);
-  }
-  incorrect.textContent = ""; // 毎回リセット
-
-
-    // 不正解メッセージを初期化
+    // 不正解メッセージ
+    let incorrect = modal.querySelector(".incorrect");
+    if (!incorrect) {
+      incorrect = document.createElement("div");
+      incorrect.classList.add("incorrect");
+      modal.querySelector(".modal-answer").appendChild(incorrect);
+    }
     incorrect.textContent = "";
 
-    // 正解判定（通常画像 or _2画像）
     const key = img.src.includes("_2.png") ? "answer" + baseId + "_2" : "answer" + baseId;
     const correct = answers[key];
 
     if (val === correct) {
-      let existing = cell.querySelector(".answer-text");
-      if (existing) {
-        existing.textContent = "正解：" + val;
-      } else {
-        const result = document.createElement("div");
-        result.textContent = "正解：" + val;
-        result.classList.add("answer-text");
-        cell.appendChild(result);
-      }
-
-      // ★ここを追加★（現在の画像が _2 付きかどうかで保存先を変える）
+      showAnswer(cell, val); // ←ここを変更
       if (img.src.includes("_2.png")) {
         cell.dataset.answered_2 = val;
       } else {
         cell.dataset.answered = val;
       }
-
-      incorrect.textContent = "";
       modal.classList.remove("show");
     } else {
       incorrect.textContent = "不正解です。";
@@ -372,9 +391,8 @@ function checkAnswer() {
     resultDiv.innerHTML = `
       <div class="correct">正解！</div>
       <div class="text-block">
-        装置「インバーター」を発見した。<br>
-        下のボタンを押すと、近くにある<span class="orange">シアン色</span>のものが反転する。<br>
-        「反転」の意味は適用されるものによるようだ。
+        「インバーター」を解禁した。<br>
+        下のボタンを押すと、近くにあるシアン色のものが反転する。<br>
       </div>
       <img src="Verse_images/inverter.png" id="inverter" onclick="invertImages()">
     `;
@@ -386,8 +404,8 @@ function checkAnswer() {
     resultDiv.innerHTML += `
       <div class="correct">正解！</div>
       <div class="text-block" id="text2">
-        インバーターはどうやらもともと2つで1セットだったようだ。<br>
-        逆回りのインバーターも存在し、そちらは赤色のものを反転させられる。
+        インバーターはもともと2つで1セットだったという噂がある。<br>
+        逆回りのインバーターも存在し、そちらは赤色のものを反転させられるらしい......
       </div>
     `;
   }
@@ -422,21 +440,27 @@ function invertImages() {
       : `Verse_images/q${i}.png`;
     img.src = newSrc;
 
-    // 既存の表示（正解テキスト）を一旦消す
-    const oldAnswerText = cell.querySelector(".answer-text");
-    if (oldAnswerText) oldAnswerText.remove();
+    // ★ answer-text を常に確保する
+    let answerDiv = cell.querySelector(".answer-text");
+    if (!answerDiv) {
+      answerDiv = document.createElement("div");
+      answerDiv.classList.add("answer-text");
+      cell.appendChild(answerDiv);
+    }
 
     // 次の状態に応じて「正解：〜」を再表示する
     const key = nextIsAlt ? "answered_2" : "answered";
     const val = cell.dataset[key];
     if (val) {
-      const result = document.createElement("div");
-      result.classList.add("answer-text");
-      result.textContent = "正解：" + val;
-      cell.appendChild(result);
+      answerDiv.textContent = "正解：" + val;
+      answerDiv.style.visibility = "visible";
+    } else {
+      answerDiv.textContent = "";
+      answerDiv.style.visibility = "hidden";
     }
   }
 }
+
 
 
 
