@@ -128,6 +128,13 @@
     font-weight: bold;
     margin-top: 20px;
   }
+  /* 不正解メッセージ */
+  .incorrect {
+    color: purple;
+    font-weight: bold;
+    margin-top: 6px;
+    min-height: 1.5em;
+  }
 </style>
 </head>
 <body>
@@ -151,6 +158,196 @@
 </div>
 
 <div id="result"></div>
+
+<!-- 拡大表示用のモーダル要素 -->
+<div id="modal" class="modal">
+  <div class="modal-content" id="modalContent">
+    <img id="modalImage" src="" alt="">
+    <div class="modal-answer">
+      <p>この問題の正誤判定はこちら</p>
+      <input type="text" id="modalInput" placeholder="解答をひらがなで入力">
+      <button id="modalButton">送信</button>
+      <p style="font-size: 0.9em; color: #555; margin-top: 8px;">
+        画面外をクリックもしくはタップで元の画面に戻る
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* モーダル全体（非表示時は透明＋クリック不可） */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.4);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+  }
+  .modal.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+  /* 拡大画像＋解答欄 */
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+  }
+  .modal.show .modal-content {
+    transform: scale(1);
+  }
+  .modal-content img {
+    max-width: 90vw;
+    max-height: 60vh;
+    border-radius: 10px;
+    box-shadow: 0 0 20px #333;
+  }
+  .modal-answer {
+    margin-top: 15px;
+  }
+  .modal-answer input {
+    padding: 6px;
+    font-size: 16px;
+    width: 180px;
+  }
+  .modal-answer button {
+    padding: 6px 12px;
+    font-size: 16px;
+    margin-left: 5px;
+  }
+
+  /* 正解表示を画像の下の行に整列させる */
+  .image-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 260px; /* ← 画像＋正解表示の分だけ高さを固定 */
+    position: relative;
+  }
+  .answer-text {
+    color: green;
+    font-weight: bold;
+    margin-top: 6px;
+    min-height: 1.2em; /* 正解テキスト領域を確保してズレ防止 */
+  }
+
+</style>
+
+<script>
+  // 各画像と対応する答え
+  const answers = {
+    answer1: "ゆたんぽ",
+    answer2: "さーくる",
+    answer3: "みなと",
+    answer4: "かみなり",
+    answer5: "ふる",
+    answer1_2: "しきさい",
+    answer2_2: "さかみち",
+    answer3_2: "いらすと",
+    answer4_2: "かいてん",
+    answer5_2: "ふき"
+  };
+
+  const modal = document.getElementById("modal");
+  const modalImg = document.getElementById("modalImage");
+  const modalInput = document.getElementById("modalInput");
+  const modalButton = document.getElementById("modalButton");
+  const imageGrid = document.getElementById("imageGrid");
+  let currentId = null;
+
+  // --- 画像を各セルで包む（グリッド崩れ防止） ---
+  window.addEventListener("DOMContentLoaded", () => {
+    const imgs = Array.from(imageGrid.querySelectorAll("img"));
+    imgs.forEach(img => {
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("image-cell");
+      img.parentNode.insertBefore(wrapper, img);
+      wrapper.appendChild(img);
+    });
+  });
+
+  // 各画像クリックでモーダルを開く
+  for (let i = 1; i <= 5; i++) {
+    const img = document.getElementById("q" + i);
+    img.addEventListener("click", () => {
+      currentId = "q" + i;
+      modalImg.src = img.src;
+      modal.classList.add("show");
+      modalInput.value = "";
+      modalInput.focus();
+    });
+  }
+
+  // モーダル外クリックで閉じる
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.classList.remove("show");
+    }
+  });
+
+  // 送信ボタン
+  modalButton.addEventListener("click", () => {
+    const val = modalInput.value.trim();
+    if (!currentId) return;
+
+    // 画像が _2 付きの場合も判定できるように
+    const baseId = currentId.replace("q", "");
+    const img = document.getElementById(currentId);
+    const cell = img.closest(".image-cell");
+
+  // 不正解メッセージ要素の準備（モーダル内に表示）
+  let incorrect = modal.querySelector(".incorrect");
+  if (!incorrect) {
+    incorrect = document.createElement("div");
+    incorrect.classList.add("incorrect");
+    modal.querySelector(".modal-answer").appendChild(incorrect);
+  }
+  incorrect.textContent = ""; // 毎回リセット
+
+
+    // 不正解メッセージを初期化
+    incorrect.textContent = "";
+
+    // 正解判定（通常画像 or _2画像）
+    const key = img.src.includes("_2.png") ? "answer" + baseId + "_2" : "answer" + baseId;
+    const correct = answers[key];
+
+    if (val === correct) {
+      let existing = cell.querySelector(".answer-text");
+      if (existing) {
+        existing.textContent = "正解：" + val;
+      } else {
+        const result = document.createElement("div");
+        result.textContent = "正解：" + val;
+        result.classList.add("answer-text");
+        cell.appendChild(result);
+      }
+
+      // ★ここを追加★（現在の画像が _2 付きかどうかで保存先を変える）
+      if (img.src.includes("_2.png")) {
+        cell.dataset.answered_2 = val;
+      } else {
+        cell.dataset.answered = val;
+      }
+
+      incorrect.textContent = "";
+      modal.classList.remove("show");
+    } else {
+      incorrect.textContent = "不正解です。";
+    }
+  });
+
+</script>
+
 
 <script>
 let inverted = false;
@@ -204,17 +401,37 @@ function checkAnswer() {
 }
 
 function invertImages() {
+  inverted = !inverted;
+
   for (let i = 1; i <= 5; i++) {
     const img = document.getElementById("q" + i);
-    // 現在の画像が _2 付きかどうかで切り替え
-    if (img.src.includes("_2.png")) {
-      img.src = `Verse_images/q${i}.png`;
-    } else {
-      img.src = `Verse_images/q${i}_2.png`;
+    const cell = img.closest(".image-cell");
+    const showingAlt = img.src.includes("_2.png");
+    const nextIsAlt = !showingAlt;
+
+    // 次に表示する画像
+    const newSrc = nextIsAlt
+      ? `Verse_images/q${i}_2.png`
+      : `Verse_images/q${i}.png`;
+    img.src = newSrc;
+
+    // 既存の表示（正解テキスト）を一旦消す
+    const oldAnswerText = cell.querySelector(".answer-text");
+    if (oldAnswerText) oldAnswerText.remove();
+
+    // 次の状態に応じて「正解：〜」を再表示する
+    const key = nextIsAlt ? "answered_2" : "answered";
+    const val = cell.dataset[key];
+    if (val) {
+      const result = document.createElement("div");
+      result.classList.add("answer-text");
+      result.textContent = "正解：" + val;
+      cell.appendChild(result);
     }
   }
-  inverted = !inverted; // 状態を反転させる
 }
+
+
 
 function tweetClear() {
   const url = encodeURIComponent("https://radiconminicar.github.io/riddles/Verse_index.html");
