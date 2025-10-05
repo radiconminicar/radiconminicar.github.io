@@ -134,7 +134,8 @@
     color: purple;
     font-weight: bold;
     margin-top: 6px;
-    min-height: 1.5em;
+    min-height: 1.7em;
+    visibility: hidden;
   }
 </style>
 </head>
@@ -165,9 +166,9 @@
   <div class="modal-content" id="modalContent">
     <img id="modalImage" src="" alt="">
     <div class="modal-answer">
-      <p>この問題の正誤判定はこちら</p>
       <input type="text" id="modalInput" placeholder="解答をひらがなで入力">
       <button id="modalButton">送信</button>
+      <div class="incorrect"></div>
       <p style="font-size: 0.9em; color: #555; margin-top: 8px;">
         画面外をクリックもしくはタップで元の画面に戻る
       </p>
@@ -294,37 +295,34 @@
     });
   }
 
-// qm画像クリックで拡大モーダル（解答欄なし）
-  const qmImg = document.getElementById("qm");
-  qmImg.addEventListener("click", () => {
-    currentId = null; // 解答判定は不要
-    modalImg.src = qmImg.src;
-    
-    // 解答欄を非表示
-    const modalAnswer = modal.querySelector(".modal-answer");
-    modalAnswer.style.display = "block"; // 表示するのはメッセージだけ
-    modalAnswer.innerHTML = `
-      <p style="font-size: 0.9em; color: #555; margin-top: 8px;">
-        画面外をクリックまたはタップで閉じる
-      </p>
-    `;
+// qmクリックで拡大（解答欄なし）
+const qm = document.getElementById("qm");
+qm.addEventListener("click", () => {
+  currentId = null; // 解答判定用のIDは無効化
+  modalImg.src = qm.src;
+  modal.classList.add("show");
 
-    modal.classList.add("show");
-  });
+  // 解答欄非表示
+  modalInput.style.display = "none";
+  modalButton.style.display = "none";
+});
 
   // モーダル外クリックで閉じる
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
       modal.classList.remove("show");
 
-      // トランジション終了後に解答欄を表示に戻す
+      // トランジション終了後に解答欄を表示に戻す（qmを閉じた場合でも安全）
       modal.addEventListener("transitionend", function handler() {
-        const modalAnswer = modal.querySelector(".modal-answer");
-        modalAnswer.style.display = "block";
+        modalInput.style.display = "inline-block";
+        modalButton.style.display = "inline-block";
         modal.removeEventListener("transitionend", handler);
+        const incorrect = modal.querySelector(".incorrect");
+        if (incorrect) incorrect.textContent = "";
       });
     }
   });
+
 
 
   function showAnswer(cell, val) {
@@ -354,21 +352,22 @@
       incorrect.classList.add("incorrect");
       modal.querySelector(".modal-answer").appendChild(incorrect);
     }
-    incorrect.textContent = "";
 
     const key = img.src.includes("_2.png") ? "answer" + baseId + "_2" : "answer" + baseId;
     const correct = answers[key];
 
     if (val === correct) {
-      showAnswer(cell, val); // ←ここを変更
+      showAnswer(cell, val);
       if (img.src.includes("_2.png")) {
         cell.dataset.answered_2 = val;
       } else {
         cell.dataset.answered = val;
       }
       modal.classList.remove("show");
+      incorrect.style.visibility = "hidden"; // 消す
     } else {
       incorrect.textContent = "不正解です。";
+      incorrect.style.visibility = "visible"; // 表示
     }
   });
 
