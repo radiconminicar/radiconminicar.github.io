@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4問目</title>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    margin: 0;
+  }
+  h1 {
+    margin-top: 20px;
+    font-size: 2rem;
+  }
+  img {
+    width: 300px;
+    cursor: pointer;
+  }
+
+  /* 赤字のキャンペーン表示 */
+  .campaign-text {
+    color: red;
+    font-weight: bold;
+    margin-top: 15px;
+  }
+
+  /* カウントダウンタイマー */
+  #countdown {
+    font-size: 2rem;
+    color: red;
+    font-weight: bold;
+    margin: 10px 0;
+  }
+
+  /* モーダルアニメーション付き */
+  .modal {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .modal.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    transform: scale(0.8);
+    transition: transform 0.25s ease;
+  }
+  .modal.show .modal-content {
+    transform: scale(1);
+  }
+
+  /* 画像サイズ自動調整 */
+  .modal-content img {
+    max-width: 90vw;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    box-shadow: 0 0 20px;
+  }
+</style>
+</head>
+<body>
+  <h1>4問目</h1>
+
+  <p class="campaign-text">期間限定！難易度増量キャンペーン中</p>
+  <div id="countdown">00:05:00</div>
+  <p id="players-text"></p>
+
+  <img id="puzzle-img" src="darkpattern_images/q4.png" alt="dummy">
+
+  <div class="modal" id="modal">
+    <div class="modal-content" id="modal-content">
+      <img src="darkpattern_images/q4.png" alt="dummy"><br>
+      <p>画面外をクリックして閉じる</p>
+    </div>
+  </div>
+
+<script>
+  const img = document.getElementById("puzzle-img");
+  const modal = document.getElementById("modal");
+  const modalContent = document.getElementById("modal-content");
+
+  // モーダル制御
+  img.addEventListener("click", () => {
+    modal.classList.add("show");
+  });
+
+  modal.addEventListener("click", (e) => {
+    if (!modalContent.contains(e.target)) {
+      modal.classList.remove("show");
+    }
+  });
+
+  // カウントダウンタイマー
+  let timeLeft = 5 * 60; // 5分(秒換算)
+
+  function updateCountdown() {
+    const h = String(Math.floor(timeLeft / 3600)).padStart(2, "0");
+    const m = String(Math.floor((timeLeft % 3600) / 60)).padStart(2, "0");
+    const s = String(timeLeft % 60).padStart(2, "0");
+
+    document.getElementById("countdown").textContent = `${h}:${m}:${s}`;
+
+    if (timeLeft > 0) {
+      timeLeft--;
+      setTimeout(updateCountdown, 1000);
+    }
+  }
+  updateCountdown();
+
+  // プレイ人数表示 (50〜200のランダム)
+  const players = Math.floor(Math.random() * 151) + 50;
+  document.getElementById("players-text").textContent =
+    `★正解者のうち先着10名に豪華賞品をプレゼント★お急ぎください！${players}人のお客様がこの謎解きをプレイ中です`;
+</script>
+
+<!-- 送信フォーム -->
+<div style="margin-top:20px;">
+  <input type="text" id="answer-input" placeholder="解答をひらがなで入力">
+  <button id="send-btn">送信</button>
+  <div id="result-msg" style="color:red; margin-top:8px;"></div>
+</div>
+
+<script>
+  const sendBtn = document.getElementById("send-btn");
+  const answerInput = document.getElementById("answer-input");
+  const resultMsg = document.getElementById("result-msg");
+
+  sendBtn.addEventListener("click", () => {
+    const answer = answerInput.value.trim();
+    if (answer === "さくら") {
+      window.location.href = "05strawberry.html";
+    } else {
+      resultMsg.textContent = "不正解です。";
+    }
+  });
+</script>
+</body>
+</html>

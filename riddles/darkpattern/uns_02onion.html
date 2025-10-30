@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>解約お手続き</title>
+<style>
+    body {
+        font-family: sans-serif;
+        margin: 20px;
+        font-size: 18px;
+        line-height: 1.6;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    .plan {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+    }
+
+    .blue { background: #c7eaff; }
+    .green { background: #d7ffb3; }
+    .orange { background: #ffd9a6; }
+
+    hr { margin: 25px 0; }
+
+    label {
+        display: block;
+        margin-bottom: 10px;
+        cursor: pointer;
+    }
+
+    button {
+        display: block;
+        margin: 20px auto 0;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+    }
+
+    #planBtn {
+        background-color: red;
+        color: white;
+    }
+
+    #unsubscribeBtn {
+        background-color: transparent;
+        color: #aaa;
+        font-size: 0.9rem;
+        cursor: default;
+    }
+
+    /* モーダル */
+    .modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(5px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        z-index: 1000;
+    }
+    .modal.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .modal-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 16px;
+        max-width: 92vw;
+        width: min(900px, 92vw);
+        max-height: 86vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow: hidden;
+        transform: scale(0.95);
+        transition: transform 0.25s ease;
+    }
+    .modal.show .modal-card {
+        transform: scale(1);
+    }
+    .modal-card img {
+        max-width: calc(100% - 32px);
+        max-height: calc(100% - 32px);
+        object-fit: contain;
+        border-radius: 8px;
+    }
+
+    #modal p {
+        margin-top: 10px;
+        font-size: 0.95rem;
+        color: #555;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>解約お手続き</h1>
+
+<p>解約の前に、まずはこれまでのサービスの素晴らしさや利便性を振り返ってみましょう。  
+このサービスでは毎月膨大な量の情報が提供され、利用者の皆様は日々の生活をより充実させることができました。  
+もし解約してしまうと、以下のような数多くの恩恵を受けられなくなります。</p>
+
+<ul>
+<li>オリジナル謎解きによるリフレッシュ効果。</li>
+<li>限定コンテンツや会員限定のキャンペーン、特別割引情報。</li>
+<li>過去に解いた謎解きの結果や進捗を記録する個人ダッシュボードの利用。</li>
+<li>サービス利用者同士の交流掲示板やチャットによるコミュニケーション。</li>
+<li>将来的に追加予定の新機能や新作コンテンツへのアクセス。</li>
+</ul>
+
+<p>このように、解約によって失われる価値は計り知れません。  
+さらに、ここで解約手続きを行う前に、現在提供中の特別プランをぜひ検討してみてください。  </p>
+
+<div class="plan blue">
+    <strong>謎解きお届けプラン</strong><br>
+    月に2回、オリジナルの謎解きをお届けします。所要時間は5～10分です。
+</div>
+
+<div class="plan green">
+    <strong>謎解き放題プラン</strong><br>
+    当サービスオリジナルの謎解きを全てご提供。4年に1回新作追加予定。
+</div>
+
+<div class="plan orange">
+    <strong>投げ銭プラン</strong><br>
+    サービスの内容はありませんが、運営が喜びます。
+</div>
+
+<hr>
+
+<form id="unsubscribeForm">
+<label><input type="checkbox"> 解約手続きを進めることにより、当サービスの利用ができなくなることに同意します。</label>
+<label><input type="checkbox"> 上記のプランへの登録は行いません。</label>
+<label><input type="checkbox"> <span id="openModal">解約謎</span>を確認しました。</label>
+<label><input type="checkbox"> 当サービスを解約すると、今後一切の特典が受けられなくなることを理解しました。</label>
+<label><input type="checkbox"> 解約後のサポートや返金は一切ないことを承諾します。</label>
+</form>
+
+<button id="planBtn">プランを検討する</button>
+<button id="unsubscribeBtn">解約手続きを進める</button>
+
+<!-- モーダル -->
+<div id="modalOverlay" class="modal">
+    <div class="modal-card">
+        <img src="darkpattern_images/unsub.png" alt="dummy">
+        <p>解約手続きを進めるには、ADBC</p>
+        <p>画面外をクリックして閉じる</p>
+    </div>
+</div>
+
+<script>
+    const modalOverlay = document.getElementById("modalOverlay");
+    const openModal = document.getElementById("openModal");
+
+    openModal.addEventListener("click", (e) => {
+        e.preventDefault(); // チェックボックスに影響させない
+        modalOverlay.classList.add("show");
+    });
+
+    modalOverlay.addEventListener("click", (e) => {
+        const modalCard = modalOverlay.querySelector(".modal-card");
+        if (!modalCard.contains(e.target)) {
+            modalOverlay.classList.remove("show");
+        }
+    });
+
+    const planBtn = document.getElementById("planBtn");
+    planBtn.onclick = () => {
+        window.location.href = "05strawberry.html";
+    };
+
+    let clickCount = 0;
+    const unsubscribeBtn = document.getElementById("unsubscribeBtn");
+    const checkboxes = document.querySelectorAll("#unsubscribeForm input[type='checkbox']");
+
+    unsubscribeBtn.addEventListener("click", () => {
+        clickCount++;
+
+        if (clickCount >= 5) {
+            let allChecked = true;
+            checkboxes.forEach(cb => {
+                if (!cb.checked) allChecked = false;
+            });
+
+            if (!allChecked) {
+                alert("同意事項を確認してください。");
+                clickCount = 0; // クリック回数リセット
+            } else {
+                window.location.href = "uns_03potato.html";
+            }
+        }
+});
+</script>
+
+</body>
+</html>

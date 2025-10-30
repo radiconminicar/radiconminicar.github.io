@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3問目</title>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    margin: 0;
+  }
+  h1 {
+    margin-top: 20px;
+    font-size: 2rem;
+  }
+
+  /* 重ね合わせ枠 */
+  .image-container {
+    position: relative;
+    display: inline-block;
+  }
+
+  /* 下の画像(dummy.png) */
+  #puzzle-img {
+    width: 300px;
+    height: auto;
+    display: block;
+  }
+
+  /* 上の画像(dummy2.png) 完全に重ねる */
+  #dummy2 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: auto;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  /* closebutton */
+  #closebtn {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    z-index: 20;
+  }
+
+  /* background blur class */
+  .blurred {
+    filter: blur(4px);
+  }
+
+  /* モーダル */
+  .modal {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(5px);
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .modal.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    transform: scale(0.8);
+    transition: transform 0.25s ease;
+  }
+  .modal.show .modal-content {
+    transform: scale(1);
+  }
+  .modal-content img {
+    max-width: 90vw;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+
+  /* overlay モーダルの広告テキスト */
+  #overlay-ad-text {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: red;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+<h1>3問目</h1>
+
+<div class="image-container">
+  <img id="puzzle-img" class="dummy-image" src="darkpattern_images/q3.png" alt="q3">
+  <img id="dummy2" class="dummy2-image" src="darkpattern_images/ad.png" alt="ad">
+  <img id="closebtn" src="darkpattern_images/closebutton.png" alt="close">
+</div>
+
+<!-- dummy.png 用モーダル -->
+<div class="modal" id="modal">
+  <div class="modal-content" id="modal-content">
+    <img src="darkpattern_images/q3.png" alt="dummy">
+    <p>画面外をクリックして閉じる</p>
+  </div>
+</div>
+
+<!-- dummy2.png 用モーダル -->
+<div class="modal" id="overlay-modal">
+  <div class="modal-content" id="overlay-modal-content">
+    <div id="overlay-ad-text">広告</div>
+    <img src="darkpattern_images/ad.png" alt="dummy2">
+    <p>画面外をクリックして閉じる</p>
+  </div>
+</div>
+
+<script>
+  const puzzleImg = document.getElementById("puzzle-img");
+  const dummy2 = document.getElementById("dummy2");
+  const closebtn = document.getElementById("closebtn");
+
+  const modal = document.getElementById("modal");
+  const modalContent = document.getElementById("modal-content");
+
+  const overlayModal = document.getElementById("overlay-modal");
+  const overlayContent = document.getElementById("overlay-modal-content");
+
+  // dummy.png モーダル
+  puzzleImg.addEventListener("click", () => {
+    // 背景ぼかし
+    puzzleImg.classList.add("blurred");
+    dummy2.classList.add("blurred");
+
+    modal.classList.add("show");
+  });
+
+  modal.addEventListener("click", (e) => {
+    if (!modalContent.contains(e.target)) {
+      // ぼかし解除
+      puzzleImg.classList.remove("blurred");
+      dummy2.classList.remove("blurred");
+
+      modal.classList.remove("show");
+    }
+  });
+
+  // dummy2.png モーダル
+  dummy2.addEventListener("click", () => {
+    puzzleImg.classList.add("blurred");
+    dummy2.classList.add("blurred");
+
+    dummy2.style.zIndex = "0";
+
+    overlayModal.classList.add("show");
+  });
+
+  // モーダル閉じる処理
+  overlayModal.addEventListener("click", (e) => {
+    if (!overlayContent.contains(e.target)) {
+      puzzleImg.classList.remove("blurred");
+      dummy2.classList.remove("blurred");
+
+      // モーダルを閉じるアニメーション開始
+      overlayModal.classList.remove("show");
+
+      // transition の時間に合わせて遅延 (0.25秒)
+      setTimeout(() => {
+        dummy2.style.zIndex = "10";
+      }, 250);
+    }
+  });
+
+
+  // close button を押した時に dummy2 と closebtn を削除
+  closebtn.addEventListener("click", (e) => {
+    dummy2.remove();
+    closebtn.remove();
+    e.stopPropagation();
+  });
+</script>
+
+<!-- 送信フォーム -->
+<div style="margin-top:20px;">
+  <input type="text" id="answer-input" placeholder="解答をひらがなで入力" style>
+  <button id="send-btn">送信</button>
+  <div id="result-msg" style="color:red; margin-top:8px;"></div>
+</div>
+
+<script>
+  const sendBtn = document.getElementById("send-btn");
+  const answerInput = document.getElementById("answer-input");
+  const resultMsg = document.getElementById("result-msg");
+
+  sendBtn.addEventListener("click", () => {
+    const answer = answerInput.value.trim();
+    if (answer === "こうこく") {
+      window.location.href = "04dragonfruit.html";
+    } else {
+      resultMsg.textContent = "不正解です。";
+    }
+  });
+</script>
+
+</body>
+</html>

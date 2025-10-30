@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>解約完了</title>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 40px 20px;
+    background: #fafafa;
+  }
+
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+  }
+
+  p {
+    font-size: 1.2rem;
+    margin-bottom: 25px;
+  }
+
+  hr {
+    border: none;
+    border-top: 3px solid #ccc;
+    margin: 30px 0;
+  }
+
+  .clear-text {
+    font-size: 3rem;
+    color: red;
+    margin-bottom: 30px;
+  }
+
+  .tweet-btn {
+    display: inline-block;
+    padding: 12px 25px;
+    background-color: #1da1f2;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 1.2rem;
+  }
+
+  .tweet-btn:hover {
+    opacity: 0.85;
+  }
+</style>
+</head>
+<body>
+
+<h1>サービスの解約が完了しました。</h1>
+<p>これまでご利用いただき、誠にありがとうございました。</p>
+
+<hr>
+
+<div class="clear-text">クリア！</div>
+<p>これにて一件落着です。</p>
+
+<a class="tweet-btn" id="tweetBtn" target="_blank">ツイートする</a>
+
+<script>
+  const tweetBtn = document.getElementById("tweetBtn");
+  const url = encodeURIComponent("https://radiconminicar.github.io/riddles/dark_index.html");
+  const text = encodeURIComponent("軽謎『ダーク』をクリア！ #軽謎ダーク ");
+  const tweetUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+  tweetBtn.href = tweetUrl;
+</script>
+
+</body>
+</html>

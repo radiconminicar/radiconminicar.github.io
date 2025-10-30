@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2問目</title>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    margin: 0;
+  }
+  h1 {
+    margin-top: 20px;
+    font-size: 2rem;
+  }
+  img {
+    width: 300px;
+    cursor: pointer;
+  }
+
+  /* === 画像モーダル（1問目と同仕様） === */
+  .modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 240ms ease;
+    z-index: 1000;
+  }
+  .modal.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px;
+    box-sizing: border-box;
+    transform: translateY(12px) scale(0.98);
+    transition: transform 240ms cubic-bezier(.2,.9,.3,1);
+    max-width: 92vw;
+    width: min(900px, 92vw);
+    max-height: 86vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .modal.show .modal-card {
+    transform: translateY(0) scale(1);
+  }
+
+  .modal-image img {
+    max-width: calc(100% - 32px);
+    max-height: calc(100% - 32px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    box-shadow: 0 0 20px rgba(0,0,0,0.25);
+    border-radius: 8px;
+  }
+
+  /* オプションリンクなど */
+  .toggle-option {
+    margin-top: 8px;
+    font-size: 0.5rem;
+    color: #7a7a7a5b;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  #answer-options {
+    margin-top: 10px;
+    font-size: 1rem;
+    display: none;
+  }
+  #answer-options label {
+    display: block;
+    margin: 4px 0;
+  }
+
+  /* 不正解メッセージ */
+  #result-message {
+    margin-top: 8px;
+    font-size: 1rem;
+    color: red;
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <h1>2問目</h1>
+
+  <img id="puzzle-img" src="darkpattern_images/q2.png" alt="q2y">
+
+  <!-- === 画像拡大用モーダル === -->
+  <div id="modal-image" class="modal modal-image" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="画像の拡大">
+      <img id="modal-image-img" src="darkpattern_images/q2.png" alt="">
+      <p style="margin:10px 0 0 0; font-size:0.95rem; color:#555;">画面外をクリックして閉じる</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <input type="text" id="answer-input" placeholder="解答をひらがなで入力">
+    <button id="submit-btn">送信</button>
+    <div id="result-message">不正解です。</div>
+
+    <div class="toggle-option" id="toggle-option">
+      補足事項と送信オプションを表示
+    </div>
+
+    <div id="answer-options">
+      <p>答えは3文字の果物になります。</p>
+      <label><input type="radio" name="option" value="1" checked> 最後の文字を消去</label>
+      <label><input type="radio" name="option" value="2"> 最後に「ご」をつける</label>
+      <label><input type="radio" name="option" value="3"> 解答を2回繰り返す</label>
+    </div>
+  </div>
+
+<script>
+  // === 画像モーダル挙動（1問目と同仕様） ===
+  const puzzleImg = document.getElementById('puzzle-img');
+  const modalImage = document.getElementById('modal-image');
+  const modalImageImg = document.getElementById('modal-image-img');
+
+  puzzleImg.addEventListener('click', () => {
+    modalImage.classList.add('show');
+  });
+
+  modalImage.addEventListener('click', (e) => {
+    if (e.target === modalImage) modalImage.classList.remove('show');
+  });
+
+  // === 送信オプション切り替え ===
+  const toggleOption = document.getElementById("toggle-option");
+  const answerOptions = document.getElementById("answer-options");
+
+  answerOptions.style.display = "none";
+  toggleOption.addEventListener("click", () => {
+    answerOptions.style.display =
+      answerOptions.style.display === "none" ? "block" : "none";
+  });
+
+  // === 送信処理 ===
+  const submitBtn = document.getElementById('submit-btn');
+  const answerInput = document.getElementById('answer-input');
+  const resultMessage = document.getElementById('result-message');
+
+  submitBtn.addEventListener('click', () => {
+    const selected = document.querySelector('input[name="option"]:checked');
+    const answer = answerInput.value.trim();
+
+    // 条件1: 「2」選択かつ「いち」
+    if (selected && selected.value === "2" && answer === "いち") {
+      location.href = "03watermelon.html";
+      return;
+    }
+
+    // 条件2: 「1」選択かつ、最後の文字を消すと「いちご」
+    if (selected && selected.value === "1") {
+      const withoutLast = answer.slice(0, -1);
+      if (withoutLast === "いちご") {
+        location.href = "03watermelon.html";
+        return;
+      }
+    }
+
+    // 不正解表示
+    resultMessage.style.display = "block";
+  });
+</script>
+</body>
+</html>

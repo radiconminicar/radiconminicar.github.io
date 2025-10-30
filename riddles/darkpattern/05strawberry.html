@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5問目</title>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    margin: 0;
+  }
+  h1 {
+    margin-top: 20px;
+    font-size: 2rem;
+  }
+  img {
+    width: 300px;
+    cursor: pointer;
+  }
+
+  /* モーダルアニメーション付き */
+  .modal {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .modal.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    transform: scale(0.8);
+    transition: transform 0.25s ease;
+  }
+  .modal.show .modal-content {
+    transform: scale(1);
+  }
+
+  /* 画像サイズ自動調整 */
+  .modal-content img {
+    max-width: 90vw;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    box-shadow: 0 0 20px;
+  }
+</style>
+</head>
+<body>
+  <h1>5問目</h1>
+
+  <img id="puzzle-img" src="darkpattern_images/q5.png" alt="dummy">
+
+  <div class="modal" id="modal">
+    <div class="modal-content" id="modal-content">
+      <img src="darkpattern_images/q5.png" alt="dummy"><br>
+      <p>画面外をクリックして閉じる</p>
+    </div>
+  </div>
+
+<script>
+  const img = document.getElementById("puzzle-img");
+  const modal = document.getElementById("modal");
+  const modalContent = document.getElementById("modal-content");
+
+  img.addEventListener("click", () => {
+    modal.classList.add("show");
+  });
+
+  modal.addEventListener("click", (e) => {
+    if (!modalContent.contains(e.target)) {
+      modal.classList.remove("show");
+    }
+  });
+</script>
+
+<!-- 送信フォーム -->
+<div style="margin-top:20px;">
+  <input type="text" id="answer-input" placeholder="解答をひらがなで入力">
+  <button id="send-btn">送信</button>
+  <div id="result-msg" style="color:red; margin-top:8px;"></div>
+</div>
+
+<script>
+  const sendBtn = document.getElementById("send-btn");
+  const answerInput = document.getElementById("answer-input");
+  const resultMsg = document.getElementById("result-msg");
+
+  sendBtn.addEventListener("click", () => {
+    const answer = answerInput.value.trim();
+    if (answer === "かいやく") {
+      window.location.href = "uns_01carrot.html";
+    } else {
+      resultMsg.textContent = "不正解です。";
+    }
+  });
+</script>
+</body>
+</html>
