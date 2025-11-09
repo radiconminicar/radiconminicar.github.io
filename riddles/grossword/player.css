@@ -1,0 +1,70 @@
+#rule-header {
+  text-align: center;
+  font-size: 25px;
+  text-decoration: underline;
+}
+
+#rule {
+  text-align: center;
+}
+
+#image {
+  margin: auto;
+  display: block;
+}
+
+.key {
+  width: 200px;
+  margin: auto;
+}
+
+.crossword {
+  display: flex;
+  justify-content: center;
+}
+
+.answer-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap : 8px;
+  margin-top: 20px;
+}
+
+#answer-input {
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+#submit-answer {
+  background-color: lightblue;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor:pointer;
+}
+
+#result-message {
+  text-align: center;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+#tweet {
+  background-color: blue;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  margin: auto;
+  display: none;
+}
+
+#key-flipped {
+  position: fixed;
+  bottom: 0px;
+  right: 20px;
+  transform: rotate(190deg);
+  transform-origin: center;
+}

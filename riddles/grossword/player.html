@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang = "ja">
+<head>
+  <meta charset = "UTF-8">
+  <title>グロスワ～ド</title>
+  <style>
+    h1 {
+      text-align: center
+    }
+  </style>
+  <link rel = "stylesheet" href = "player.css">
+  <!-- <link rel = "stylesheet" href = "css/info.css"> -->
+</head>
+
+<body>
+<h1>
+  グロスワ～ド
+</h1>
+
+<p id = "rule-header">
+  ル～ル
+</p>
+
+<p id = "rule">
+  だいたい普通のクロスワードと同じですよ。<br>
+  全部埋めたら最終回答を送信しましょうね。
+</p>
+
+<div class = "crossword">
+  <div class = "cross">
+    <img src = "image.png" id = "image">
+  </div>
+  <div class = "cross">
+    <p id = "rule-header">
+      タテのカギ
+    </p>
+    <ol class = "key">
+      <li value = "2">生・生・生</li>
+      <li value = "3">蝙蝠</li>
+      <li value = "5">虹のRじゃない方</li>
+      <li value = "6">ウインクしてるみたい</li>
+      <li value = "9">良かったり悪かったり</li>
+      <li value = "11">中国の下</li>
+      <li value = "13">だいたい引き分け</li>
+    </ol>
+
+    <p id = "rule-header">
+      ヨコのカギ
+    </p>
+    <ol class = "key">
+      <li value = "4">カベを英語で</li>
+      <li value = "7">ハチを英語で</li>
+      <li value = "8">イワシといえばオイル〇〇〇〇〇</li>
+      <li value = "10">8本じゃないよ</li>
+      <li value = "12">暑いと活躍</li>
+      <li value = "14">ジャン</li>
+    </ol>
+  </div>
+</div>
+
+<p id = "rule-header">
+  最終回答
+</p>
+<p id = "rule">
+  最終回答は紫・青・緑・黄・橙・赤
+</p>
+<div class ="answer-area">
+  <input type = "text" id = "answer-input" placeholder = "最終回答をひらがなで入力">
+  <button id = "submit-answer">送信</button>
+</div>
+
+<p id = "result-message"></p>
+<button id = "tweet">ツイ～ト</button>
+
+<p id = "key-flipped">
+  1. この状況
+</p>
+</body>
+
+<script src = "player.js"></script>
+<!-- <script src = "scripts/info.js"></script> -->
+</html>
