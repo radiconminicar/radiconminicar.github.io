@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang = "ja">
+<head>
+  <meta charset = "UTF-8">
+  <title>早すぎるクリスマスからの脱出</title>
+  <style>
+    h1 {
+      text-align: center
+    }
+  </style>
+  <link rel = "stylesheet" href = "css/step-tab.css">
+  <link rel = "stylesheet" href = "css/info.css">
+</head>
+
+<body>
+  <h1>早すぎるクリスマスからの脱出</h1>
+  <div class = "step-tab-button" id = "step-tab-button">
+    <div class = "step-button"><a data-tab = "#step1">STEP1</a></div>
+    <div class = "step-button"><a data-tab = "#step2">STEP2</a></div>
+    <div class = "step-button"><a data-tab = "#step3">STEP3</a></div>
+    <div class = "step-button"><a data-tab = "#step4">LAST STEP</a></div>
+  </div>
+  <div id = "step-tab-contents">
+    <div id = "step1" class = "step-tab-contents-item">
+      <div class = "content-wrapper">
+        <p class = "message">
+          協力してくれてありがとう．<br>
+          まずは間違って配達してしまったプレゼントを回収したいんだが......<br>
+          最近はプライバシーがどうとかうるさくてね、配達情報は<span class = "message-highlight">全て謎にして管理する</span>ようにしているんだ。<br>
+          ほとんどは解き方を覚えていたんだが、いくつか全くもって解き方が分からなくてね。<br>
+          そこで君には<span class = "message-highlight">4つの謎</span>を解いてもらいたい。<br>
+          解けたら私に教えてくれ。
+        </p>
+        <hr class = "step-tab-hr">
+        <p class ="subject">
+          STEP1の目的
+        </p>
+        <ul class = "subject-list">
+          <li>4問の謎を解いて、プレゼントがどこにあるのかを特定しよう。</li>
+          <li>謎が解けたら「プレゼント回収機」でプレゼントを回収しよう。</li>
+        </ul>
+        <p>
+        </p>
+      </div>
+    </div>
+    <div id = "step2" class = "step-tab-contents-item">
+      <p class = "message">
+        ありがとう！プレゼントの回収ができて助かったよ。<br>
+        次のお願いなんだが、<span class = "message-highlight">プレゼントを一度金庫にしまってほしい</span>。<br>
+        クリスマスにプレゼントが盗まれてしまったら大変だからね。<br>
+        一度金庫を開けてプレゼントを入れてから、もう一度金庫を閉めてくれれば大丈夫だ。
+        よろしく頼むよ。
+      </p>
+      <hr class = "step-tab-hr">
+      <p class ="subject">
+        STEP2の目的
+      </p>
+      <ul class = "subject-list">
+        <li>金庫の開け方を特定しよう。</li>
+        <li>金庫が空いたらプレゼントを入れ、もう一度閉めて鍵をかけよう。</li>
+      </ul>
+    </div>
+    <div id = "step3" class = "step-tab-contents-item">
+      <p>STEP3ですよー</p>
+    </div>
+    <div id = "step4" class = "step-tab-contents-item">
+      <p>LASTEPですよー</p>
+    </div>
+  </div>
+
+  <!-- 情報タブ周り -->
+  <button id ="btn-info">◀情報</button>
+  <div id = "menu-info">
+    <ul>
+      <li class = "menu-info-item" data-target = "modal-info-1">プレゼント回収機</li>
+      <li class = "menu-info-item" data-target = "modal-info-2">金庫</li>
+      <li class = "menu-info-item" data-target = "modal-info-3">サンタの魔法</li>
+    </ul>
+  </div>
+  
+  <div class = "modal-info" id = "modal-info-1">
+    <div class = "modal-info-content">
+      <p class = "title-info">プレゼント回収機</p>
+      <p class = "description-info">
+        プレゼントの場所を入力すると、その場所にあるプレゼントを自動で回収してくれる機械。<br>
+        場所が謎解きによって暗号化されている場合、その謎の答えを入力しても回収に向かってくれる。
+      </p>
+      <button class = "close-modal-info">閉じる</button>
+    </div>
+  </div>
+
+  <div class = "modal-info" id = "modal-info-2">
+    <div class = "modal-info-content">
+      <p class = "title-info">金庫</p>
+      <p class = "description-info">
+        寿限無寿限無 五劫の擦り切れ 海砂利水魚の 水行末 雲来末 風来末 食う寝る処に住む処 藪ら柑子の藪柑子 パイポパイポパイポのシューリンガン シューリンガンのグーリンダイ グーリンダイのポンポコピーのポンポコナーの長久命の長助
+      </p>
+      <button class = "close-modal-info">閉じる</button>
+    </div>
+  </div>
+
+  <div class = "modal-info" id = "modal-info-3">
+    <div class = "modal-info-content">
+      <p class = "title-info">サンタの魔法</p>
+      <p class = "description-info">
+        寿限無寿限無 五劫の擦り切れ 海砂利水魚の 水行末 雲来末 風来末 食う寝る処に住む処 藪ら柑子の藪柑子 パイポパイポパイポのシューリンガン シューリンガンのグーリンダイ グーリンダイのポンポコピーのポンポコナーの長久命の長助
+      </p>
+      <button class = "close-modal-info">閉じる</button>
+    </div>
+  </div>
+</body>
+
+<script src = "scripts/step-tab.js"></script>
+<script src = "scripts/info.js"></script>
+</html>

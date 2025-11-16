@@ -1,0 +1,91 @@
+#btn-info {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: orange;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
+  font-family: "YuMincho";
+}
+#btn-info:hover {
+  transform: scale(1.05);
+}
+#btn-info.active {
+  transform: translateX(-30vw);
+}
+
+#menu-info {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 25%;
+  height: 100%;
+  background: #ee9500;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  z-index: 1000;
+  padding: 20px;
+}
+#menu-info.active {
+  transform: translateX(0);
+}
+#menu-info ul {
+  list-style: none;
+  padding: 0;
+}
+#menu-info li {
+  padding: 12px 0;
+  border-bottom: 1px solid;
+  cursor: pointer;
+}
+.menu-info-item:hover {
+  transform: scale(1.05);
+}
+
+.modal-info {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.modal-info.active {
+  display: flex;
+}
+.modal-info-content {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.close-modal-info {
+  background: lightgray;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.title-info {
+  font-size: 25px;
+  text-decoration: underline;
+  font-family: serif;
+}
+.description-info {
+  font-family: serif;
+}

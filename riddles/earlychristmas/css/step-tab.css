@@ -1,0 +1,75 @@
+/* ステップ切り替え用ボタンのレイアウト */
+.step-tab-button {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.step-button {
+  flex-basis: 25%;
+  text-align: center;
+}
+.step-button a {
+  display: block;
+  position: relative;
+  font-size: 16px;
+  padding: 8px;
+  text-decoration: none;
+  line-height: 1.2;
+  color: black;
+  background-color: lightgray;
+  cursor: pointer;
+}
+.step-button a.is-active {
+  background-color: lightblue;
+}
+.step-button a.is-disabled {
+  background-color: gray;
+}
+
+#step-tab-contents {
+  position: relative;
+}
+.step-tab-contents-item {
+  /* display: none; */
+  position: absolute;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 1s ease, transform 1s ease;
+  pointer-events: none;
+}
+.step-tab-contents-item.is-active {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0);
+  background-color: lightblue;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  flex-direction: column;
+}
+
+.step-tab-hr {
+  display: block;
+  border: none;
+  border-top: 4px double;
+  width: 100%;
+  margin: 20px 0;
+  align-self: stretch;
+}
+.message {
+  color: darkgreen;
+}
+.message-highlight {
+  color: red;
+  font-weight: bold;
+}
+.subject {
+  font-size : 20px;
+  text-decoration: underline;
+  color: red;
+}
+.subject-list {
+  text-align: left;
+  color: darkgreen;
+}
