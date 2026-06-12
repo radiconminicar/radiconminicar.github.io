@@ -156,3 +156,9 @@ h1 {
   font-size: 40px;
   font-weight: bold;
 }
+
+.detail {
+  border: 1px solid;
+  border-radius: 5px;
+  padding: 10px 15px;
+}
