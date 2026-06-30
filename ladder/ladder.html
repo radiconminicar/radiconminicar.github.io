@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>謎解きハシゴ計画ツール</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --success-color: #10b981;
+            --border-color: #e5e7eb;
+            --bg-color: #f9fafb;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: #1f2937;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1250px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #111827;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            height: 38px;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background-color: #4338ca;
+        }
+
+        /* ーーー 新設：回転ボタンの3Dアニメーション構造 ーーー */
+        .btn-solve-container {
+            margin-bottom: 16px;
+            perspective: 1000px; /* 3Dの奥行き表現 */
+        }
+
+        .cube-button {
+            width: 100%;
+            height: 44px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.645, 0.045, 0.355, 1);
+            cursor: pointer;
+        }
+
+        /* 面の共通スタイル */
+        .cube-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 6px;
+            color: white;
+            backface-visibility: hidden;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        /* 正面：通常状態（計画を立てる） */
+        .cube-face.front {
+            background-color: var(--success-color);
+            transform: rotateX(0deg) translateZ(22px);
+        }
+        .cube-button:not(.flipped):hover .front {
+            background-color: #059669;
+        }
+
+        /* 上面：メッセージ状態（上から落ちてくるように見せる面） */
+        .cube-face.top {
+            background-color: #4b5563; /* デフォルトはグレー、JavaScriptで動的に変える */
+            transform: rotateX(90deg) translateZ(22px);
+        }
+
+        /* くるっと回転させるためのクラス（JSで制御） */
+        .cube-button.flipped {
+            transform: rotateX(-90deg);
+        }
+        /* ーーー アニメーション構造ここまで ーーー */
+
+        .transit-details {
+            background: #f9fafb;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 24px;
+        }
+
+        .transit-details summary {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #4b5563;
+            cursor: pointer;
+            outline: none;
+            user-select: none;
+        }
+
+        .transit-matrix {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 10px;
+        }
+
+        .transit-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .transit-label {
+            font-size: 0.85rem;
+            color: #374151;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .transit-input {
+            width: 70px;
+            padding: 4px 6px;
+            font-size: 0.85rem;
+            text-align: right;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 10px;
+            border-top: 2px solid var(--border-color);
+            padding-top: 24px;
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .time-axis {
+            position: relative;
+            height: 1020px;
+            margin-top: 130px;
+        }
+
+        .axis-label {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            text-align: right;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            font-weight: bold;
+            transform: translateY(-50%);
+        }
+
+        .timetables-scroll-area {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            align-items: flex-start;
+        }
+
+        .timetable-column {
+            flex: 0 0 260px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            box-sizing: border-box;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .column-header {
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            padding-right: 24px;
+        }
+
+        .column-title {
+            font-weight: bold;
+            font-size: 1rem;
+            color: #111827;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .column-meta {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .btn-delete-column {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0;
+            height: auto;
+            line-height: 1;
+        }
+
+        .btn-delete-column:hover {
+            color: var(--danger-color);
+            background: none;
+        }
+
+        .column-control {
+            background: #f3f4f6;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .column-control-flex {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .timetable-grid {
+            position: relative;
+            height: 1020px;
+            background-color: #fafafa;
+            background-image: linear-gradient(var(--border-color) 1px, transparent 1px);
+            background-size: 100% 60px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .timetable-grid::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: linear-gradient(dashed rgba(229, 231, 237, 0.5) 1px, transparent 1px);
+            background-size: 100% 30px;
+            pointer-events: none;
+        }
+
+        .event-card {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            background-color: #e0e7ff;
+            border-left: 4px solid var(--primary-color);
+            color: #3730a3;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            z-index: 5;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+        }
+
+        .event-card.selected {
+            background-color: #fef08a !important;
+            border-left-color: #eab308 !important;
+            color: #713f12 !important;
+            z-index: 10;
+        }
+
+        .event-card.disabled {
+            background-color: #e5e7eb !important;
+            border-left-color: #9ca3af !important;
+            color: #6b7280 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .event-card-time {
+            font-weight: bold;
+            margin-bottom: 2px;
+            font-size: 0.75rem;
+            padding-right: 14px;
+        }
+
+        .btn-delete-event {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: none;
+            border: none;
+            color: rgba(0, 0, 0, 0.3);
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 2px;
+            height: auto;
+            line-height: 1;
+            z-index: 12;
+        }
+
+        .btn-delete-event:hover {
+            color: var(--danger-color) !important;
+            background: none;
+        }
+        
+        .event-card.selected .btn-delete-event {
+            color: rgba(113, 63, 18, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ハシゴ計画</h1>
+    
+    <div class="form-group">
+        <div class="input-field">
+            <label for="event-name">公演名</label>
+            <input type="text" id="event-name">
+        </div>
+        <div class="input-field">
+            <label for="event-venue">会場</label>
+            <input type="text" id="event-venue">
+        </div>
+        <div class="input-field">
+            <label for="event-duration">所要時間 (分)</label>
+            <input type="number" id="event-duration" placeholder="半角整数で入力" min="1">
+        </div>
+        <button id="btn-add-column">追加</button>
+    </div>
+
+    <div class="btn-solve-container">
+        <div id="cube-btn" class="cube-button">
+            <div class="cube-face front">計画を立てる</div>
+            <div id="cube-msg-face" class="cube-face top"></div>
+        </div>
+    </div>
+
+    <details class="transit-details">
+        <summary>会場間の移動時間を追加</summary>
+        <div class="transit-matrix" id="transit-matrix">
+            <div style="color: #9ca3af; font-size: 0.85rem; padding: 4px;">会場が複数存在する場合、ここに移動時間の入力欄が表示されます。</div>
+        </div>
+    </details>
+
+    <div id="workspace-area" class="workspace hidden">
+        <div class="time-axis" id="time-axis"></div>
+        <div class="timetables-scroll-area" id="timetables-scroll-area"></div>
+    </div>
+</div>
+
+<script>
+    const START_HOUR = 8;
+    const END_HOUR = 24;
+    const PIXELS_PER_HOUR = 60;
+
+    const btnAddColumn = document.getElementById('btn-add-column');
+    const cubeBtn = document.getElementById('cube-btn');
+    const cubeMsgFace = document.getElementById('cube-msg-face');
+    const workspaceArea = document.getElementById('workspace-area');
+    const timeAxis = document.getElementById('time-axis');
+    const timetablesScrollArea = document.getElementById('timetables-scroll-area');
+    const transitMatrix = document.getElementById('transit-matrix');
+
+    let allEvents = [];
+    let columns = []; 
+    let columnIdCounter = 0;
+    let transitTimes = {};
+    let resetTimeoutId = null; // タイマーキャンセル用のID
+
+    function generateTimeAxis() {
+        timeAxis.innerHTML = '';
+        for (let h = START_HOUR; h <= END_HOUR; h++) {
+            const topPosition = (h - START_HOUR) * PIXELS_PER_HOUR;
+            const label = document.createElement('div');
+            label.className = 'axis-label';
+            label.style.top = `${topPosition}px`;
+            label.textContent = `${String(h).padStart(2, '0')}:00`;
+            timeAxis.appendChild(label);
+        }
+    }
+
+    generateTimeAxis();
+
+    function updateTransitMatrix() {
+        const venues = [...new Set(columns.map(col => col.venue))].sort();
+
+        if (venues.length < 2) {
+            transitMatrix.innerHTML = '<div style="color: #9ca3af; font-size: 0.85rem; padding: 4px;">会場が複数存在する場合、ここに移動時間の入力欄が表示されます。</div>';
+            return;
+        }
+
+        transitMatrix.innerHTML = '';
+
+        for (let i = 0; i < venues.length; i++) {
+            for (let j = i + 1; j < venues.length; j++) {
+                const venueA = venues[i];
+                const venueB = venues[j];
+                const pairKey = `${venueA}-${venueB}`;
+
+                if (!(pairKey in transitTimes)) {
+                    transitTimes[pairKey] = 0;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'transit-row';
+
+                row.innerHTML = `
+                    <div class="transit-label" title="${venueA} ↔ ${venueB}">${venueA} ↔ ${venueB}</div>
+                    <input type="number" class="transit-input" min="0" placeholder="0" value="${transitTimes[pairKey] || ''}">
+                    <span style="font-size: 0.8rem; color: #6b7280;">分</span>
+                `;
+
+                const input = row.querySelector('.transit-input');
+                input.addEventListener('input', () => {
+                    const val = parseInt(input.value, 10) || 0;
+                    transitTimes[pairKey] = val;
+                    recalculateAllEventStates();
+                });
+
+                transitMatrix.appendChild(row);
+            }
+        }
+    }
+
+    function getTransitTime(columnIdA, columnIdB) {
+        const venueA = columns.find(c => c.id === columnIdA)?.venue;
+        const venueB = columns.find(c => c.id === columnIdB)?.venue;
+        if (!venueA || !venueB || venueA === venueB) return 0;
+
+        const key1 = `${venueA}-${venueB}`;
+        const key2 = `${venueB}-${venueA}`;
+        return transitTimes[key1] || transitTimes[key2] || 0;
+    }
+
+    function recalculateAllEventStates() {
+        const selectedEvents = allEvents.filter(ev => ev.element.classList.contains('selected'));
+
+        allEvents.forEach(ev => {
+            if (ev.element.classList.contains('selected')) {
+                ev.element.classList.remove('disabled');
+                return;
+            }
+
+            const isOverlappingWithAnySelected = selectedEvents.some(selectedEv => {
+                if (selectedEv.columnId === ev.columnId) return false;
+
+                const transitMinutes = getTransitTime(ev.columnId, selectedEv.columnId);
+
+                const selectedThenCurrentOverlap = (selectedEv.end + transitMinutes) > ev.start;
+                const currentThenSelectedOverlap = (ev.end + transitMinutes) > selectedEv.start;
+
+                return (selectedThenCurrentOverlap && currentThenSelectedOverlap);
+            });
+
+            if (isOverlappingWithAnySelected) {
+                ev.element.classList.remove('selected');
+                ev.element.classList.add('disabled');
+            } else {
+                ev.element.classList.remove('selected', 'disabled');
+            }
+        });
+    }
+
+    function handleCardClick(clickedEv) {
+        resetCubeButtonImmediately(); // 手動操作が入ったらボタンを元に戻す
+
+        const isSelected = clickedEv.element.classList.contains('selected');
+
+        if (isSelected) {
+            clickedEv.element.classList.remove('selected');
+        } else {
+            allEvents.forEach(ev => {
+                if (ev.columnId === clickedEv.columnId && ev.element.classList.contains('selected')) {
+                    ev.element.classList.remove('selected');
+                }
+            });
+            clickedEv.element.classList.add('selected');
+        }
+
+        recalculateAllEventStates();
+    }
+
+    function checkWorkspaceVisibility() {
+        if (timetablesScrollArea.children.length === 0) {
+            workspaceArea.classList.add('hidden');
+        } else {
+            workspaceArea.classList.remove('hidden');
+        }
+    }
+
+    // ボタンの回転表示と、10秒タイマーの管理関数
+    function showCubeMessage(text, isSuccess) {
+        // 既存のタイマーがあれば一度リセット
+        if (resetTimeoutId) clearTimeout(resetTimeoutId);
+
+        cubeMsgFace.textContent = text;
+        cubeMsgFace.style.backgroundColor = isSuccess ? 'var(--success-color)' : 'var(--danger-color)';
+        
+        // くるっと回す(上面を表に)
+        cubeBtn.classList.add('flipped');
+
+        // 10秒(10000ms)経ったら、下から元のテキストに回転して戻る
+        resetTimeoutId = setTimeout(() => {
+            cubeBtn.classList.remove('flipped');
+        }, 3000);
+    }
+
+    // ユーザー操作時に強制的に即時ボタンを戻す処理
+    function resetCubeButtonImmediately() {
+        if (cubeBtn.classList.contains('flipped')) {
+            if (resetTimeoutId) clearTimeout(resetTimeoutId);
+            cubeBtn.classList.remove('flipped');
+        }
+    }
+
+    // 「計画を立てる」イベント
+    cubeBtn.addEventListener('click', () => {
+        // 連打対策、または現在エラー回転中なら一度戻す
+        if (cubeBtn.classList.contains('flipped')) {
+            resetCubeButtonImmediately();
+            return;
+        }
+
+        if (columns.length === 0) {
+            showCubeMessage('公演を追加してください。', false);
+            return;
+        }
+
+        for (let col of columns) {
+            const hasEvents = allEvents.some(ev => ev.columnId === col.id);
+            if (!hasEvents) {
+                showCubeMessage(` 「${col.name}」に枠がありません。`, false);
+                return;
+            }
+        }
+
+        function findRoute(colIndex, currentSelection) {
+            if (colIndex === columns.length) {
+                return currentSelection;
+            }
+
+            const currentColumn = columns[colIndex];
+            const availableEvents = allEvents.filter(ev => ev.columnId === currentColumn.id);
+
+            for (let ev of availableEvents) {
+                let isOk = true;
+                for (let selectedEv of currentSelection) {
+                    const transit = getTransitTime(ev.columnId, selectedEv.columnId);
+                    if ((selectedEv.end + transit > ev.start) && (ev.end + transit > selectedEv.start)) {
+                        isOk = false;
+                        break;
+                    }
+                }
+
+                if (isOk) {
+                    const result = findRoute(colIndex + 1, [...currentSelection, ev]);
+                    if (result) return result;
+                }
+            }
+            return null;
+        }
+
+        const successfulRoute = findRoute(0, []);
+
+        if (successfulRoute) {
+            allEvents.forEach(ev => ev.element.classList.remove('selected', 'disabled'));
+            successfulRoute.forEach(ev => ev.element.classList.add('selected'));
+            recalculateAllEventStates();
+            
+            showCubeMessage('計画を作成しました！', true);
+        } else {
+            showCubeMessage('ハシゴはできません......。', false);
+        }
+    });
+
+    btnAddColumn.addEventListener('click', () => {
+        resetCubeButtonImmediately();
+
+        const name = document.getElementById('event-name').value.trim();
+        const venue = document.getElementById('event-venue').value.trim();
+        const duration = parseInt(document.getElementById('event-duration').value, 10);
+
+        if (!name || !venue || isNaN(duration) || duration <= 0) {
+            alert('すべての項目を正しく入力してください。');
+            return;
+        }
+
+        workspaceArea.classList.remove('hidden');
+
+        const currentColumnId = columnIdCounter++;
+        columns.push({ id: currentColumnId, name: name, venue: venue });
+        updateTransitMatrix();
+
+        const column = document.createElement('div');
+        column.className = 'timetable-column';
+
+        column.innerHTML = `
+            <button class="btn-delete-column" title="この公演枠を削除">×</button>
+            <div class="column-header">
+                <div class="column-title" title="${name}">${name}</div>
+                <div class="column-meta">📍 ${venue} (${duration}分枠)</div>
+            </div>
+            <div class="column-control">
+                <label style="font-size: 0.75rem; margin-bottom: 4px; display: block;">予定を追加</label>
+                <div class="column-control-flex">
+                    <input type="time" class="input-start-time" value="10:00" style="padding: 4px 6px; font-size: 0.85rem; height: 30px;">
+                    <button class="btn-add-event" style="padding: 0 10px; font-size: 0.8rem; height: 30px;">配置</button>
+                </div>
+            </div>
+            <div class="timetable-grid"></div>
+        `;
+
+        const btnDeleteColumn = column.querySelector('.btn-delete-column');
+        btnDeleteColumn.addEventListener('click', () => {
+            if (confirm(`「${name}」を削除しますか？`)) {
+                allEvents = allEvents.filter(ev => ev.columnId !== currentColumnId);
+                columns = columns.filter(c => c.id !== currentColumnId);
+                column.remove();
+                
+                resetCubeButtonImmediately(); 
+                updateTransitMatrix();
+                recalculateAllEventStates();
+                checkWorkspaceVisibility();
+            }
+        });
+
+        const btnAddEvent = column.querySelector('.btn-add-event');
+        const inputStartTime = column.querySelector('.input-start-time');
+        const grid = column.querySelector('.timetable-grid');
+
+        btnAddEvent.addEventListener('click', () => {
+            resetCubeButtonImmediately();
+
+            const startTimeVal = inputStartTime.value;
+            if (!startTimeVal) {
+                alert('開始時刻を選択してください。');
+                return;
+            }
+
+            const [hours, minutes] = startTimeVal.split(':').map(Number);
+            const startTotalMinutes = (hours * 60 + minutes) - (START_HOUR * 60);
+
+            if (startTotalMinutes < 0 || hours >= END_HOUR) {
+                alert('開始時刻は 08:00 から 24:00 の間で設定してください。');
+                return;
+            }
+
+            const topPosition = startTotalMinutes;
+            const cardHeight = duration;
+
+            const endTotalMinutes = (hours * 60 + minutes) + duration;
+            const endHours = Math.floor(endTotalMinutes / 60);
+            const endMinutes = endTotalMinutes % 60;
+            const endTimeVal = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+
+            const eventCard = document.createElement('div');
+            eventCard.className = 'event-card';
+            eventCard.style.top = `${topPosition}px`;
+            eventCard.style.height = `${cardHeight}px`;
+            
+            const absStart = hours * 60 + minutes;
+            const absEnd = absStart + duration;
+            eventCard.dataset.start = absStart;
+            eventCard.dataset.end = absEnd;
+
+            eventCard.innerHTML = `
+                <button class="btn-delete-event" title="この予定を削除">×</button>
+                <div class="event-card-time">${startTimeVal}〜${endTimeVal}</div>
+            `;
+
+            const newEventObj = {
+                element: eventCard,
+                start: absStart,
+                end: absEnd,
+                columnId: currentColumnId
+            };
+
+            eventCard.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-delete-event')) {
+                    return;
+                }
+                if (eventCard.classList.contains('disabled')) {
+                    return;
+                }
+                handleCardClick(newEventObj);
+            });
+
+            const btnDeleteEvent = eventCard.querySelector('.btn-delete-event');
+            btnDeleteEvent.addEventListener('click', () => {
+                allEvents = allEvents.filter(ev => ev !== newEventObj);
+                eventCard.remove();
+                resetCubeButtonImmediately();
+                recalculateAllEventStates();
+            });
+
+            grid.appendChild(eventCard);
+            allEvents.push(newEventObj);
+
+            recalculateAllEventStates();
+        });
+
+        timetablesScrollArea.appendChild(column);
+        timetablesScrollArea.scrollLeft = timetablesScrollArea.scrollWidth;
+
+        document.getElementById('event-name').value = '';
+        document.getElementById('event-venue').value = '';
+        document.getElementById('event-duration').value = '';
+    });
+</script>
+
+</body>
+</html>
