@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ドキュメントタイトル</title>
+    <style>
+        /* ----------------------------------
+           1. 基本設定とテーマカラー
+        ---------------------------------- */
+        :root {
+            --primary-color: #4f46e5;    /* 全体のアクセント（インディゴブルー） */
+            --text-color: #374151;       /* 文字色（読みやすいダークグレー） */
+            --bg-color: #f9fafb;         /* 背景色（ごく薄いグレー） */
+            --border-color: #e5e7eb;     /* 線や枠の色 */
+            --code-bg: #f3f4f6;          /* コードブロックの背景色 */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+            line-height: 1.7;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        /* ----------------------------------
+           2. レイアウト（読みやすさ重視）
+        ---------------------------------- */
+        .document-container {
+            max-width: 800px;  /* 1行が長くなりすぎない、人間にとって最適な読書幅 */
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        /* ----------------------------------
+           3. タイトル・見出し（装飾）
+        ---------------------------------- */
+        h1 {
+            font-size: 2rem;
+            color: #111827;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 12px;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            color: #1f2937;
+            border-left: 5px solid var(--primary-color);
+            padding-left: 12px;
+            margin-top: 40px;
+            margin-bottom: 16px;
+        }
+
+        h3 {
+            font-size: 1.15rem;
+            color: #374151;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+
+        /* ----------------------------------
+           4. 本文・段落
+        ---------------------------------- */
+        p {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        /* 強調表示 */
+        strong {
+            color: #111827;
+            background: linear-gradient(transparent 70%, #e0e7ff 70%); /* 薄いアンダーラインマーカー */
+            padding: 0 2px;
+        }
+
+        /* ----------------------------------
+           5. リスト・箇条書き
+        ---------------------------------- */
+        ul, ol {
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        /* ----------------------------------
+           6. 特殊なブロック（解説、注意書きなど）
+        ---------------------------------- */
+        /* 補足説明用の枠 */
+        .note-box {
+            background-color: #f0fdf4; /* 薄い緑 */
+            border-left: 4px solid #10b981;
+            padding: 16px;
+            border-radius: 0 6px 6px 0;
+            margin: 24px 0;
+        }
+
+        .note-box-title {
+            font-weight: bold;
+            color: #065f46;
+            margin-bottom: 6px;
+        }
+
+        /* 警告・注意用の枠 */
+        .warning-box {
+            background-color: #fef2f2; /* 薄い赤 */
+            border-left: 4px solid #ef4444;
+            padding: 16px;
+            border-radius: 0 6px 6px 0;
+            margin: 24px 0;
+        }
+
+        .warning-box-title {
+            font-weight: bold;
+            color: #991b1b;
+            margin-bottom: 6px;
+        }
+
+        /* ----------------------------------
+           7. インラインコードとコードブロック
+        ---------------------------------- */
+        code {
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+            background-color: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #db2777; /* ピンクがかった赤で目立たせる */
+        }
+
+        pre {
+            background-color: #1e293b; /* ダークテーマのコードブロック */
+            color: #f8fafc;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+            font-size: 0.85rem;
+        }
+
+        /* ----------------------------------
+           8. テーブル（表）
+        ---------------------------------- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f3f4f6;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9fafb; /* 1行おきに背景色を変えて見やすく */
+        }
+
+        /* ----------------------------------
+          9. 画像・図（ドキュメント用）
+        ---------------------------------- */
+        /* 単体の画像用クラス */
+        .doc-image {
+            display: block;
+            max-width: 100%;       /* 画面幅に合わせて自動縮小 */
+            height: auto;
+            margin: 24px auto;     /* 上下に余白を作り、左右中央寄せ */
+            border: 1px solid var(--border-color); /* 画像の輪郭をはっきりさせる枠線 */
+            border-radius: 6px;    /* 角を少し丸めて柔らかい印象に */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* 軽い影で浮かせる */
+        }
+
+        /* キャプション付きの画像用コンテナ */
+        .doc-image-container {
+            margin: 28px 0;
+            text-align: center;    /* 中身を中央寄せ */
+        }
+
+        .doc-image-container img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 画像の下に表示する説明文のスタイル */
+        .doc-image-container figcaption {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #6b7280;        /* 本文より少し薄いグレー */
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div class="document-container">
+
+    <!-- ==========================================================================
+       ここからドキュメント本文。
+       基本的にはHTMLの標準的なタグ（h1〜h3、p、ulなど）を上から書いていくだけです。
+    ========================================================================== -->
+
+    <!-- <h1>システム開発ドキュメント</h1>
+    <p>このドキュメントは、作成したツールの仕様や使い方をまとめたものです。HTMLの標準的なタグを使用しているため、エディタでテキストを書き換えるだけで簡単にメンテナンスが可能です。</p>
+
+    <h2>1. 概要</h2>
+    <p>ここに大まかな説明や作成の背景を記述します。重要なキーワードは <strong>ストロングタグを使う</strong> と自動で薄いマーカーペン風の背景色がついて強調されます。</p>
+    
+    <h3>1.1 対象読者</h3>
+    <ul>
+        <li>ツールの使い方を手早く理解したいユーザー</li>
+        <li>コードの構造を把握して今後メンテナンスを行う開発者</li>
+    </ul>
+
+    <h2>2. ツールの特徴と仕様</h2>
+    <p>ツールの核となる仕様をわかりやすく整理しましょう。以下はテーブル（表）のサンプルです。</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>機能名</th>
+                <th>概要</th>
+                <th>備考</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>OCRスケジュール解析</td>
+                <td>画像から文字を読み取り、自動で時間枠を生成します</td>
+                <td>Tesseract.jsを使用</td>
+            </tr>
+            <tr>
+                <td>ハシゴ計画の自動選定</td>
+                <td>競合する時間や移動時間を計算し、最適なルートを割り出します</td>
+                <td>再帰処理によるルート探索</td>
+            </tr>
+            <tr>
+                <td>スケジュール書き出し</td>
+                <td>作成したタイムテーブルを1列の画像として出力します</td>
+                <td>html2canvasを使用</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>3. 開発者向け情報</h2>
+    <p>設定方法やソースコードなどをここに記述します。プログラムのコードは以下のように <code>&lt;pre&gt;&lt;code&gt;...&lt;/code&gt;&lt;/pre&gt;</code> で囲むだけで、黒背景の読みやすいコードブロックになります。</p>
+
+<pre><code>// 探索処理のコア部分のサンプルコード
+function solveSchedule() {
+    const activeRoute = findBestRoute(columns, 0);
+    if (activeRoute) {
+        console.log("探索に成功しました！", activeRoute);
+    }
+}</code></pre>
+
+    補足・解説用のボックス -->
+    <!-- <div class="note-box">
+        <div class="note-box-title">💡 補足：移動時間の設定について</div>
+        <p>会場が2つ以上存在する場合のみ、自動的に「会場間の移動時間」入力欄が生成されます。同会場でのハシゴの場合は、移動時間を <code>0</code> 分に設定してください。</p>
+    </div>
+
+    警告・注意用のボックス
+    <div class="warning-box">
+        <div class="warning-box-title">⚠️ 注意制限事項</div>
+        <p>画像の出力処理はブラウザの <code>html2canvas</code> ライブラリに依存しています。お使いの端末のメモリ制限やブラウザのバージョンによっては、書き出された画像の端が切れる場合があります。</p>
+    </div> -->
+
+    <h1>ハシゴツール(仮) 使用方法</h1>
+    謎解き公演のハシゴ計画を補助するツールです。
+    ベータ版ですので、不具合等あればTwitterでご連絡ください。
+
+    <h2>使用方法</h2>
+    <h3>参加したい公演の追加</h3>
+    まずは参加したい公演の公演名・会場・所要時間を上の欄に入力し、「追加」ボタンを押下してください。
+    すると画面の下部に以下のようなタイムテーブルが追加されます。
+    <img src = "img/example1.png" class = "doc-image">
+    <!-- ==========================================================================
+       本文エリアここまで
+    ========================================================================== -->
+
+    <h3>公演時間の追加</h3>
+    公演枠の追加方法は2通りあります。
+    「予定を追加」の下にある入力欄に時間を入力し「配置」を押下すると、枠が追加されます。
+    例として、「かき氷からの脱出」において11:00と入力した状態で「配置」を押下すると次のようになります。
+    <img src = "img/example2.png" class = "doc-image">
+
+    またESCAPE.idにおいてチケットが発売されている場合、チケットの空き状況のスクリーンショットを「画像を添付」ボタンを経由して添付することによって自動で枠を追加することもできます。
+    例として「コインランドリーからの脱出」において次の画像を添付しましょう。
+    <img src = "img/sos.png" class = "doc-image">
+    するとタイムテーブルに次のように枠が確保されます。
+    <img src = "img/example3.png" class = "doc-image">
+
+    <h3>移動時間の追加</h3>
+    会場が複数する存在場合、「会場間の移動時間を追加」を展開することにより、移動時間を追加することができます。
+    ここではグレートバリアリーフとピサの斜塔の間の移動時間を30分としておきます。
+    <img src = "img/example5.png" class = "doc-image">
+
+    <h3>計画の作成</h3>
+    必要な公演の情報を入力出来たら、計画の作成を行うことができます。
+    手動で行う場合、参加したい枠をクリックもしくはタップすることによりその枠を確保することができます。
+    それと同時に、時間が被っていて参加できない公演はグレーアウトされます。
+    例として、「コインランドリーからの脱出」の10:00回を確保した場合、画面は次のように変化します。
+    <img src = "img/example4.png" class = "doc-image">
+
+    また画面上部の「計画を立てる」ボタンを押下することにより、自動でハシゴ計画を立てることもできます。
+    ただし、入力した公演すべてにすべてに参加することができない場合はその旨を表示します。
+    この例ではボタンを押下することにより、次の計画を作成することができました。
+    <img src = "img/example6.png" class = "doc-image">
+
+    <h3>計画の出力</h3>
+    最後に画面最下部の「スケジュールを出力」を押下することにより、スケジュールを出力することができます。
+    <img src = "img/my-schedule (2).png" class = "doc-image">
+</div>
+
+</body>
+</html>
