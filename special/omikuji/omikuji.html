@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>導かれる答えは？</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700;900&family=Cormorant+Garamond:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-top: #ffffff;
+    --bg-bottom: #f4f2ec;
+    --ink: #2b2a26;
+    --ink-dim: #6b6558;
+    --gold: #a3823f;
+    --gold-soft: #8a6f3a;
+    --line: rgba(163, 130, 63, 0.28);
+    --panel: rgba(0, 0, 0, 0.03);
+    --danger: #a1493a;
+  }
+
+  :root:not([data-theme="light"]) {
+    --bg-top: #ffffff;
+    --bg-bottom: #f4f2ec;
+    --ink: #2b2a26;
+    --ink-dim: #6b6558;
+    --gold: #a3823f;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg-top: #ffffff;
+      --bg-bottom: #f4f2ec;
+      --ink: #2b2a26;
+      --ink-dim: #6b6558;
+      --gold: #a3823f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg-top: #ffffff;
+    --bg-bottom: #f4f2ec;
+    --ink: #2b2a26;
+    --ink-dim: #6b6558;
+    --gold: #a3823f;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+  }
+
+  body {
+    background: radial-gradient(ellipse at 50% 20%, var(--bg-bottom) 0%, var(--bg-top) 70%);
+    color: var(--ink);
+    font-family: "Noto Serif JP", serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 8vh 6vw 10vh;
+    overflow-x: hidden;
+  }
+
+  /* 静かに瞬く粒(白背景では控えめに) */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, var(--gold) 0%, transparent 60%),
+      radial-gradient(1px 1px at 80% 15%, var(--gold) 0%, transparent 60%),
+      radial-gradient(1px 1px at 60% 70%, var(--gold) 0%, transparent 60%),
+      radial-gradient(1px 1px at 25% 85%, var(--gold) 0%, transparent 60%),
+      radial-gradient(1px 1px at 90% 60%, var(--gold) 0%, transparent 60%),
+      radial-gradient(1px 1px at 45% 35%, var(--gold) 0%, transparent 60%);
+    opacity: 0.18;
+    pointer-events: none;
+  }
+
+  main {
+    width: 100%;
+    max-width: 560px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mark {
+    font-size: 0.95rem;
+    letter-spacing: 0.5em;
+    color: var(--gold-soft);
+    margin: 0 0 2.2rem;
+  }
+
+  h1 {
+    font-family: "Noto Serif JP", serif;
+    font-weight: 900;
+    font-size: clamp(2.1rem, 7vw, 3.4rem);
+    line-height: 1.5;
+    margin: 0 0 3rem;
+    color: var(--ink);
+    text-shadow: 0 0 20px rgba(163, 130, 63, 0.12);
+  }
+
+  .stage {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .stage.hidden {
+    display: none;
+  }
+
+  .stage.enter {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 1.1s ease, transform 1.1s ease;
+  }
+
+  .stage.enter.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .divider {
+    width: 44px;
+    height: 1px;
+    background: var(--line);
+    margin: 3.2rem 0 2.6rem;
+  }
+
+  .message {
+    font-size: clamp(1.02rem, 3vw, 1.18rem);
+    line-height: 2.15;
+    color: var(--ink);
+    margin: 0 0 2.4rem;
+    max-width: 30em;
+  }
+
+  .message .sub {
+    display: block;
+    color: var(--ink-dim);
+    font-size: 0.92em;
+    margin-top: 0.6em;
+  }
+
+  form {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    color: var(--ink);
+    font-family: "Noto Serif JP", serif;
+    font-size: 1.05rem;
+    text-align: center;
+    padding: 0.9rem 1rem;
+    letter-spacing: 0.12em;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  input[type="text"]::placeholder {
+    color: var(--ink-dim);
+    opacity: 0.6;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(163, 130, 63, 0.12);
+  }
+
+  input[type="text"].shake {
+    animation: shake 0.4s ease;
+    border-color: var(--danger);
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  button {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--gold-soft);
+    color: var(--gold);
+    font-family: "Noto Serif JP", serif;
+    font-size: 0.98rem;
+    letter-spacing: 0.35em;
+    padding: 0.85rem 2.4rem;
+    cursor: pointer;
+    transition: background 0.35s ease, color 0.35s ease, border-color 0.35s ease;
+  }
+
+  button:hover,
+  button:focus-visible {
+    background: var(--gold);
+    color: #ffffff;
+    border-color: var(--gold);
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+  }
+
+  .hint {
+    min-height: 1.4em;
+    font-size: 0.86rem;
+    color: var(--danger);
+    letter-spacing: 0.05em;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .hint.show {
+    opacity: 0.85;
+  }
+
+  .final-title {
+    font-size: 0.95rem;
+    letter-spacing: 0.4em;
+    color: var(--gold-soft);
+    margin: 0 0 1.6rem;
+  }
+
+  .fortune {
+    color: var(--gold);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stage.enter,
+    input[type="text"].shake {
+      transition: none;
+      animation: none;
+    }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 10vh 7vw 12vh; }
+    h1 { line-height: 1.55; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <p class="mark">✦フレンズチホー48おみくじ 解答判定ページ✦</p>
+
+  <h1>導かれる答えは？</h1>
+
+  <section id="stage1" class="stage">
+    <form id="form1" autocomplete="off" novalidate>
+      <input type="text" id="input1" name="answer1" placeholder="ひらがなで入力" aria-label="問いへの答え">
+      <button type="submit">送る</button>
+      <p class="hint" id="hint1">もう一度考えよう。</p>
+    </form>
+  </section>
+
+  <section id="stage2" class="stage hidden enter">
+    <div class="divider" aria-hidden="true"></div>
+    <p class="message">
+      あなたは苦痛を取り払うことに成功した。
+      <span class="sub">真の運勢を知るためには最後の一押しが必要だ。</span>
+      <span class="sub">胸に秘めたる文字を繋ぎ、中心の二文字を送信せよ。</span>
+    </p>
+    <form id="form2" autocomplete="off" novalidate>
+      <input type="text" id="input2" name="answer2" placeholder="ひらがなか漢字で入力" aria-label="中心の二文字">
+      <button type="submit">送る</button>
+      <p class="hint" id="hint2">もう一度考えよう。</p>
+    </form>
+  </section>
+
+  <section id="stage3" class="stage hidden enter">
+    <div class="divider" aria-hidden="true"></div>
+    <p class="final-title">結　果</p>
+    <p class="message">
+      あなたは全ての謎を解き明かした！
+      <span class="sub">あなたの運勢は<br><span class="fortune">【頭を使うのはいいことだぞ吉】</span>です。</span>
+    </p>
+  </section>
+
+</main>
+
+<script>
+  (function () {
+    "use strict";
+
+    var STAGE1_ANSWERS = ["くつう", "クツウ", "苦痛"];
+    var STAGE2_ANSWERS = ["しゅご", "シュゴ", "守護"];
+
+    function normalize(v) {
+      return (v || "").trim();
+    }
+
+    function revealStage(el) {
+      el.classList.remove("hidden");
+      // 次のフレームで visible を付けることで transition を確実に発火させる
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          el.classList.add("visible");
+        });
+      });
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function flashHint(hintEl, inputEl) {
+      hintEl.classList.add("show");
+      inputEl.classList.remove("shake");
+      // reflow を挟んで再度アニメーションできるようにする
+      void inputEl.offsetWidth;
+      inputEl.classList.add("shake");
+      setTimeout(function () {
+        hintEl.classList.remove("show");
+      }, 1800);
+    }
+
+    var form1 = document.getElementById("form1");
+    var input1 = document.getElementById("input1");
+    var hint1 = document.getElementById("hint1");
+    var stage2 = document.getElementById("stage2");
+
+    form1.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var val = normalize(input1.value);
+      if (STAGE1_ANSWERS.indexOf(val) !== -1) {
+        input1.disabled = true;
+        form1.querySelector("button").disabled = true;
+        revealStage(stage2);
+        setTimeout(function () {
+          document.getElementById("input2").focus();
+        }, 700);
+      } else {
+        flashHint(hint1, input1);
+      }
+    });
+
+    var form2 = document.getElementById("form2");
+    var input2 = document.getElementById("input2");
+    var hint2 = document.getElementById("hint2");
+    var stage3 = document.getElementById("stage3");
+
+    form2.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var val = normalize(input2.value);
+      if (STAGE2_ANSWERS.indexOf(val) !== -1) {
+        input2.disabled = true;
+        form2.querySelector("button").disabled = true;
+        revealStage(stage3);
+      } else {
+        flashHint(hint2, input2);
+      }
+    });
+  })();
+</script>
+</body>
+</html>
