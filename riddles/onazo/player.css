@@ -1,0 +1,71 @@
+/* 初心者はたくさんコメントを書いておくと保守性が高まると一丁前に思っているので
+コメントがたくさんあるかもね。 */
+
+/* ----- 大雑把に全体的な指定 ----- */
+body {
+  font-family: serif
+}
+
+/* ----- クラス用の領域 ----- */
+/* 地の文 */
+.description {
+  text-align: center;
+}
+
+/* 問題画像 */
+.question {
+  width: 300px;
+  margin: 0 auto;
+  display: block;
+}
+
+/* 解答欄と解答送信ボタン */
+.answer-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap : 8px;
+  margin-top: 20px;
+}
+
+/* 正解が送信されるまで秘匿するためのエリア */
+.locked {
+  display: none;
+}
+
+/* ----- 個別id用エリア ----- */
+/* 画像拡大用モーダル */
+#modal {
+  display: none;
+  position: fixed;
+  background: rgba(0, 0, 0, 0.8);
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  inset: 0;
+}
+
+#modal img {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 8px;
+}
+
+#modal.show {
+  display: flex;
+}
+
+/* ----- CSSアニメーション ----- */
+/* 不正解時のアニメーション */
+.shake {
+  animation: shake 0.25s;
+}
+
+@keyframes shake { /* 本当にこう書くしかないのか？！ */
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-5px); }
+  40%  { transform: translateX(5px); }
+  60%  { transform: translateX(-5px); }
+  80%  { transform: translateX(5px); }
+  100% { transform: translateX(0); }
+}

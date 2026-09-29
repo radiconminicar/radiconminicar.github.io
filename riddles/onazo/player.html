@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang = "ja">
+<head>
+  <meta charset = "UTF-8">
+  <title>おおなぞしゅう</title>
+  <style>
+    h1 {
+      text-align: center
+    }
+  </style>
+  <link rel = "stylesheet" href = "player.css">
+  <!-- <link rel = "stylesheet" href = "css/info.css"> -->
+</head>
+
+<body>
+<div id = "modal">
+  <img id = "modal-image">
+</div>
+
+<h1>
+  おおなぞしゅう
+</h1>
+
+<p class = "description">
+  ようこそ。<br>
+  なぞときが すきな あなたの ために<br>
+  おおなぞを たくさん あつめました。
+</p>
+
+<p class = "description">
+  とりあえず いちもん といてみましょう。
+</p>
+
+<hr>
+
+<div class = "image">
+  <img class = "question" src = "resources/dummy.png">
+</div>
+
+<p class = "description">
+  がぞうを さわると かくだい できます。 
+  <!-- これは後で実装します 未来の自分に丸投げ！-->
+</p>
+
+<div class ="answer-area" id = "answer-area-1">
+  <input type = "text" id = "input-1" placeholder = "かいとうを にゅうりょく">
+  <button class = "submit" data-n = "1">送信</button>
+</div>
+
+<p class = "description">
+  かいとうは ひらがなで そうしん してくださいね。<br>
+  ここから ずっと そうです。
+</p>
+
+<hr>
+
+<div class = "locked" id = "locked-1">
+  <p class = "description">
+    いいですね。<br>
+    じゃあ つぎの もんだいです。
+  </p>
+
+  <div class = "image">
+    <img class = "question" src = "resources/dummy.png">
+  </div>
+
+  <div class ="answer-area" id = "answer-area-2">
+    <input type = "text" id = "input-2" placeholder = "かいとうを にゅうりょく">
+    <button class = "submit" data-n = "2">送信</button>
+  </div>  
+</div>
+
+<!-- ここから下は本体に表示されるものではない -->
+
+
+<script src = "player.js"></script>
+</html>

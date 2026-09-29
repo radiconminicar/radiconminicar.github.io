@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HIDDEN - ルール説明</title>
+    <link rel = "stylesheet" href = "css/player.css" type = "text/css">
+  </head>
+
+  <body>
+    <p id = "title">
+      HIDDEN ルール説明
+    </p>
+
+    <p class = "sentence">
+      HIDDENのプレイ画面は次の形です。
+      実際の操作方法をこの画面で確認することができます。<br>
+      操作することができるなら、ですが。
+    </p>
+
+    <hr>
+
+    <!--
+      ここにプレイ画面が来るよ
+    -->
+
+    <div id = "timer-container">
+      <p id = "timer">
+        00 : 00 : 00
+        <img src = "images/noise.gif" id = "timer-noise">
+      </p>
+    </div>
+
+    <div id = "player">
+      <div id = "prev">
+        <img src = "images/noise.gif" id = "prev-noise">
+      </div>
+      <img id = "question" src = "../dummy.png">
+      <div id = "next">
+        <img src = "images/noise.gif" id = "next-noise">
+      </div>
+    </div>
+
+    <div id = "submit-area">
+      <input id = "answer" type = "text">
+      <button id = "submit">送信 <img src = "images/noise.gif" id = "button-noise"></button>
+      
+    </div>
+    
+    <hr>
+
+    <p class = "sentence">
+      ノイズになって隠れている部分については，問題を解くと順次解放されていきます．<br>
+
+      HIDDENでは様々な行動(次の問題に移る，前の問題に戻る，解答を送信する，等)に「コスト」が必要になります．
+      その「コスト」が何なのかは...解いているうちに分かることでしょう．<br>
+
+      それでは、始めましょう。
+      <a href = "player.html">こちら</a>を押すとスタートです。
+    </p>
+  </body>
+</html>
