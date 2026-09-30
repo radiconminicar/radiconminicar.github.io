@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scoreboard</title>
+<style>
+  html, body { height:100%; margin:0; overflow:hidden; background:#fff; color:#000; font-family:"Hiragino Sans","Yu Gothic","Meiryo",sans-serif; }
+  #slider { display:flex; width:200vw; height:100%; transition:transform .7s ease-in-out; }
+  #slider.em { transform:translateX(-100vw); }
+  .screen { width:100vw; height:100%; flex:none; position:relative; box-sizing:border-box; }
+  #main { display:flex; flex-direction:column; }
+  .grid { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; background:#000; min-height:0; }
+  .cell { position:relative; background:#fff; display:flex; align-items:center; justify-content:center; }
+  .name { position:absolute; top:1.5vmin; left:2.5vmin; font-size:4vmin; font-weight:700; }
+  .score { font-size:15vmin; font-weight:800; font-variant-numeric:tabular-nums; transition:color .3s; }
+  .score.changed { color:#dc2626; }
+  #em { background:#fff; }
+  #emhead { position:absolute; top:2vmin; left:3vmin; z-index:2; background:#fff; padding:.5vmin 2vmin; border:2px solid #dc2626; border-radius:1.5vmin; }
+  #emlabel { font-size:3vmin; font-weight:700; color:#dc2626; }
+  #emtimer { font-size:9vmin; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.1; }
+  #embody { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  #embody img { max-width:100%; max-height:100%; object-fit:contain; }
+  #emtext { font-size:10vmin; font-weight:800; color:#dc2626; }
+  /* デバッグ表示(F1で切り替え。通常は非表示) */
+  #timer { position:fixed; right:8px; bottom:32px; z-index:5; font-size:28px; font-weight:800; font-variant-numeric:tabular-nums; background:rgba(255,255,255,.85); padding:2px 8px; border-radius:4px; }
+  #timer.ended { color:#dc2626; }
+  #timer.paused { color:#888; }
+  #status { position:fixed; right:8px; bottom:6px; font-size:12px; background:rgba(255,255,255,.85); padding:2px 6px; border-radius:4px; z-index:5; }
+  #timer, #status { display:none; }
+  body.debug #timer, body.debug #status { display:block; }
+</style>
+</head>
+<body>
+<div id="slider">
+  <div class="screen" id="main">
+    <div class="grid">
+      <div class="cell"><div class="name">Team1</div><div class="score" id="s0">-</div></div>
+      <div class="cell"><div class="name">Team2</div><div class="score" id="s1">-</div></div>
+      <div class="cell"><div class="name">Team3</div><div class="score" id="s2">-</div></div>
+      <div class="cell"><div class="name">Team4</div><div class="score" id="s3">-</div></div>
+    </div>
+  </div>
+  <div class="screen" id="em">
+    <div id="embody"></div>
+    <div id="emhead"><div id="emlabel">緊急ミッション</div><div id="emtimer">01:00</div></div>
+  </div>
+</div>
+<div id="timer">--:--</div>
+<div id="status">読み込み中…</div>
+
+<script>
+/* ========== スコア取得 ========== */
+const SHEET_ID = "1SBp0oQzCXvHXjJiSSaP_IdJwrLUkB9OYhSfoGcw49Ms";
+const SHEET_NAME = "Score", RANGE = "C14:F14", INTERVAL_MS = 5000;
+window.__onSheet = function (res) {
+  const st = document.getElementById("status");
+  try {
+    if (res.status !== "ok") throw new Error(res.errors?.[0]?.message || "error");
+    const cells = res.table.rows[0]?.c || [];
+    for (let i = 0; i < 4; i++) {
+      const c = cells[i], text = c ? (c.f ?? (c.v ?? "")) : "";
+      const el = document.getElementById("s" + i);
+      if (el.textContent !== String(text)) {
+        el.textContent = text === "" ? "-" : text;
+        el.classList.add("changed");
+        setTimeout(() => el.classList.remove("changed"), 1200);
+      }
+    }
+    st.textContent = "最終更新 " + new Date().toLocaleTimeString("ja-JP");
+  } catch (e) { st.textContent = "取得失敗: " + e.message; }
+};
+function load() {
+  document.getElementById("jsonp")?.remove();
+  const s = document.createElement("script");
+  s.id = "jsonp";
+  s.onerror = () => { document.getElementById("status").textContent = "取得失敗(共有設定を確認)"; };
+  s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:__onSheet&sheet=${encodeURIComponent(SHEET_NAME)}&range=${RANGE}&headers=0&_=${Date.now()}`;
+  document.body.appendChild(s);
+}
+load(); setInterval(load, INTERVAL_MS);
+
+/* ========== 設定(localStorage。操作画面control.htmlと共有) ========== */
+const DEFAULT_CFG = { total: 3600, missions: [
+  { at: 2400, dur: 60, img: "" },   // 残り40:00
+  { at: 1200, dur: 60, img: "" }    // 残り20:00
+]};
+let cfg;
+function loadCfg() {
+  let c = null;
+  try { c = JSON.parse(localStorage.getItem("sb_cfg")); } catch (e) {}
+  if (!c || !Array.isArray(c.missions)) c = JSON.parse(JSON.stringify(DEFAULT_CFG));
+  c.missions.forEach(m => { m.id = m.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6); });
+  cfg = c;
+  try { localStorage.setItem("sb_cfg", JSON.stringify(cfg)); } catch (e) {}
+}
+loadCfg();
+const fmt = s => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+
+/* ========== 緊急ミッション ========== */
+const slider = document.getElementById("slider");
+const emTimer = document.getElementById("emtimer");
+let emActive = null, emTick = null, emEnd = 0, done = new Set();
+
+function startEmergency(m) {
+  done.add(m.id);
+  emActive = m;
+  const n = cfg.missions.indexOf(m) + 1;
+  document.getElementById("emlabel").textContent = "緊急ミッション " + n;
+  const body = document.getElementById("embody");
+  body.innerHTML = "";
+  if (m.img) { const i = document.createElement("img"); i.src = m.img; body.appendChild(i); }
+  else { const d = document.createElement("div"); d.id = "emtext"; d.textContent = "緊急ミッション " + n; body.appendChild(d); }
+  emTimer.textContent = fmt(m.dur);
+  slider.classList.add("em");
+  runEm(m.dur);
+}
+function runEm(sec) {
+  emEnd = Date.now() + sec * 1000;
+  clearInterval(emTick);
+  emTick = setInterval(() => {
+    const r = Math.max(0, Math.round((emEnd - Date.now()) / 1000));
+    emTimer.textContent = fmt(r);
+    if (r === 0) endEmergency();
+  }, 250);
+}
+function endEmergency() {
+  clearInterval(emTick); emTick = null; emActive = null;
+  slider.classList.remove("em");
+}
+function checkMissions() {
+  if (emActive || remaining === null || remaining <= 0) return;
+  const due = cfg.missions.filter(m => !done.has(m.id) && m.at > 0 && remaining <= m.at)
+                          .sort((a, b) => b.at - a.at)[0];
+  if (due) startEmergency(due);
+}
+
+/* ========== メインタイマー ========== */
+const timerEl = document.getElementById("timer");
+let remaining = null, endAt = 0, tick = null, paused = false, emLeft = 0;
+function render() {
+  timerEl.textContent = remaining === null ? "--:--" : fmt(remaining);
+  timerEl.classList.toggle("ended", remaining === 0);
+  timerEl.classList.toggle("paused", paused);
+}
+function stop() { clearInterval(tick); tick = null; }
+function setTimer() { stop(); paused = false; endEmergency(); done.clear(); remaining = cfg.total; render(); }
+function startTimer() {
+  if (tick || remaining === null || remaining <= 0) return;
+  paused = false;
+  endAt = Date.now() + remaining * 1000;
+  tick = setInterval(() => {
+    remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+    render(); checkMissions();
+    if (remaining === 0) stop();
+  }, 250);
+  if (emActive) runEm(emLeft);
+  render(); checkMissions();
+}
+function togglePause() {
+  if (paused) { startTimer(); return; }
+  if (!tick) return;
+  remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+  if (emActive) {
+    emLeft = Math.max(0, Math.round((emEnd - Date.now()) / 1000));
+    clearInterval(emTick); emTick = null;
+  }
+  stop(); paused = true; render();
+}
+function clearTimer() { stop(); paused = false; endEmergency(); done.clear(); remaining = null; render(); }
+
+/* ========== 操作画面(control.html)との連携 ========== */
+const ch = "BroadcastChannel" in window ? new BroadcastChannel("scoreboard") : null;
+function publish() {
+  if (!ch) return;
+  ch.postMessage({ type: "state", remaining, running: !!tick, paused,
+    em: emActive ? { id: emActive.id, left: emTick ? Math.max(0, Math.round((emEnd - Date.now()) / 1000)) : emLeft } : null,
+    done: [...done], status: document.getElementById("status").textContent });
+}
+if (ch) ch.onmessage = e => {
+  const d = e.data;
+  if (d.type === "cmd") {
+    if (d.cmd === "set") setTimer();
+    else if (d.cmd === "start") startTimer();
+    else if (d.cmd === "pause") togglePause();
+    else if (d.cmd === "clear") clearTimer();
+    else if (d.cmd === "closeEm") endEmergency();
+    else if (d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
+  } else if (d.type === "cfg") loadCfg();
+  publish();
+};
+setInterval(publish, 500);
+
+/* ========== キー操作 ========== */
+document.addEventListener("keydown", e => {
+  if (e.key === "F1") { e.preventDefault(); document.body.classList.toggle("debug"); return; }
+  // キー配置: e.code を使うので、IMEオン/Caps Lockでも動きます
+  if (e.code === " ") e.preventDefault();
+  if (e.code === "Escape") window.open("control.html", "sb_control", "width=980,height=860");
+  else if (e.code === "t") setTimer();
+  else if (e.code === "Enter" || e.code === "NumpadEnter") startTimer();
+  else if (e.code === " ") togglePause();
+  else if (e.code === "ArrowLeft") endEmergency();
+  else if (e.code === "0" || e.code === "Numpad0") clearTimer();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>操作画面</title>
+<style>
+  body { margin:0; padding:16px; background:#fff; color:#000; font-family:"Hiragino Sans","Yu Gothic","Meiryo",sans-serif; font-size:15px; }
+  h1 { font-size:20px; margin:0 0 12px; } h2 { font-size:17px; margin:20px 0 8px; }
+  .top { display:flex; flex-wrap:wrap; align-items:center; gap:8px 24px; border:2px solid #000; border-radius:8px; padding:10px 16px; }
+  #timer { font-size:56px; font-weight:800; font-variant-numeric:tabular-nums; }
+  #timer.ended { color:#dc2626; } #timer.paused { color:#888; }
+  .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  button { font-size:15px; padding:8px 14px; cursor:pointer; }
+  .card { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; border:1px solid #000; border-radius:8px; padding:10px; margin-bottom:10px; }
+  .card.active { border:3px solid #dc2626; }
+  .card input[type=text] { padding:4px; font-size:15px; }
+  .card .at, .card .dur { width:70px; }
+  .card .path { width:220px; }
+  .thumb { width:96px; height:64px; border:1px solid #999; display:flex; align-items:center; justify-content:center; color:#888; font-size:12px; overflow:hidden; }
+  .thumb img { max-width:100%; max-height:100%; }
+  .stat { font-weight:700; min-width:110px; }
+  .hint { color:#555; font-size:13px; }
+  .off { color:#dc2626; font-weight:700; }
+</style>
+</head>
+<body>
+<h1>操作画面</h1>
+<div class="top">
+  <div id="timer">--:--</div>
+  <div><div id="tstate">待機中</div><div id="emnow" class="hint"></div></div>
+  <div><div>スプレッドシート: <span id="upd">-</span></div><div>スコアボード: <span id="conn" class="off">未接続</span></div></div>
+</div>
+<div class="btns">
+  <button data-cmd="set">T セット</button>
+  <button data-cmd="start">Enter 開始</button>
+  <button data-cmd="pause">Space 一時停止/再開</button>
+  <button data-cmd="clear">0 --:-- に戻す</button>
+  <button data-cmd="closeEm">← 緊急ミッションを閉じる</button>
+</div>
+
+<h2 id="settingsH">設定 <span class="hint">(Escapeキーでここに移動)</span></h2>
+<div>全体タイマー(1でセットされる時間): <input type="number" id="totalMin" min="1" style="width:70px"> 分</div>
+<h2>緊急ミッション</h2>
+<p class="hint">「残り」が全体タイマーの残り時間です。その値以下になると発動します。画像は、同じフォルダに置いたファイルの相対パス(例: images/m1.png)か、アップロードで指定できます。</p>
+<div id="list"></div>
+<button id="addBtn">＋ 緊急ミッションを追加</button>
+
+<script>
+const ch = new BroadcastChannel("scoreboard");
+const send = m => ch.postMessage(m);
+const fmt = s => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+function parseMS(t) {
+  const p = String(t).trim().split(":").map(Number);
+  if (p.some(isNaN)) return null;
+  return p.length === 1 ? p[0] * 60 : p[0] * 60 + p[1];
+}
+
+/* ---- 設定 ---- */
+let cfg;
+try { cfg = JSON.parse(localStorage.getItem("sb_cfg")); } catch (e) {}
+if (!cfg || !Array.isArray(cfg.missions)) cfg = { total: 3600, missions: [] };
+cfg.missions.forEach(m => { m.id = m.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6); });
+function save() {
+  try { localStorage.setItem("sb_cfg", JSON.stringify(cfg)); } catch (e) { alert("保存できませんでした(アップロード画像が大きすぎる可能性があります)。画像はパス指定がおすすめです。"); return; }
+  send({ type: "cfg" });
+}
+const listEl = document.getElementById("list"), totalIn = document.getElementById("totalMin");
+totalIn.value = cfg.total / 60;
+totalIn.onchange = () => { cfg.total = Math.max(1, Math.round(+totalIn.value || 60)) * 60; totalIn.value = cfg.total / 60; save(); };
+
+function buildList() {
+  listEl.innerHTML = "";
+  cfg.missions.forEach((m, i) => {
+    const isData = (m.img || "").startsWith("data:");
+    const row = document.createElement("div"); row.className = "card"; row.dataset.id = m.id;
+    row.innerHTML = `<b>#${i + 1}</b><div class="thumb">${m.img ? `<img src="${m.img}">` : "画像なし"}</div>
+      残り <input type="text" class="at" value="${fmt(m.at)}" title="mm:ss">
+      表示 <input type="number" class="dur" min="1" value="${m.dur}">秒
+      画像 <input type="text" class="path" placeholder="images/m1.png" value="${isData ? "" : (m.img || "")}">
+      <input type="file" class="file" accept="image/*" style="width:190px">
+      ${isData ? `<span class="hint">(アップロード済み)</span>` : ""}
+      <button class="rmimg">画像削除</button>
+      <span class="stat"></span>
+      <button class="test">テスト表示</button><button class="del">削除</button>`;
+    row.querySelector(".at").onchange = e => { const v = parseMS(e.target.value); if (v !== null) m.at = v; e.target.value = fmt(m.at); save(); };
+    row.querySelector(".dur").onchange = e => { m.dur = Math.max(1, +e.target.value || 60); e.target.value = m.dur; save(); };
+    row.querySelector(".path").onchange = e => { m.img = e.target.value.trim(); save(); buildList(); };
+    row.querySelector(".file").onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { m.img = r.result; save(); buildList(); };
+      r.readAsDataURL(f);
+    };
+    row.querySelector(".rmimg").onclick = () => { m.img = ""; save(); buildList(); };
+    row.querySelector(".test").onclick = () => send({ type: "cmd", cmd: "test", id: m.id });
+    row.querySelector(".del").onclick = () => { cfg.missions.splice(i, 1); save(); buildList(); };
+    listEl.appendChild(row);
+  });
+  if (last) updateStatus(last);
+}
+document.getElementById("addBtn").onclick = () => {
+  cfg.missions.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at: 600, dur: 60, img: "" });
+  save(); buildList();
+};
+save(); // idを保存
+
+/* ---- 状態表示 ---- */
+let last = null, lastAt = 0;
+function updateStatus(s) {
+  const t = document.getElementById("timer");
+  t.textContent = s.remaining === null ? "--:--" : fmt(s.remaining);
+  t.classList.toggle("ended", s.remaining === 0);
+  t.classList.toggle("paused", !!s.paused);
+  document.getElementById("tstate").textContent =
+    s.paused ? "一時停止中" : s.running ? "カウント中" : s.remaining === null ? "待機中(--:--)" : s.remaining === 0 ? "終了" : "セット済み(未開始)";
+  document.getElementById("upd").textContent = s.status;
+  document.getElementById("emnow").textContent = s.em ? "緊急ミッション表示中 残り " + fmt(s.em.left) : "";
+  document.querySelectorAll(".card").forEach(row => {
+    const id = row.dataset.id, st = row.querySelector(".stat");
+    const active = s.em && s.em.id === id;
+    row.classList.toggle("active", !!active);
+    st.textContent = active ? "表示中 " + fmt(s.em.left) : s.done.includes(id) ? "発動済み" : "待機";
+  });
+}
+ch.onmessage = e => {
+  if (e.data.type !== "state") return;
+  last = e.data; lastAt = Date.now(); updateStatus(last);
+};
+setInterval(() => {
+  const ok = Date.now() - lastAt < 3000;
+  const c = document.getElementById("conn");
+  c.textContent = ok ? "接続中" : "未接続(スコアボードを開いてください)";
+  c.className = ok ? "" : "off";
+}, 1000);
+send({ type: "hello" });
+buildList();
+
+/* ---- ボタン/キー操作 ---- */
+document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => { send({ type: "cmd", cmd: b.dataset.cmd }); b.blur(); });
+const keyMap = { KeyT: "set", Enter: "start", NumpadEnter: "start", Space: "pause", ArrowLeft: "closeEm", Digit0: "clear", Numpad0: "clear" };
+document.addEventListener("keydown", e => {
+  if (e.code === "Escape") { document.getElementById("settingsH").scrollIntoView({ behavior: "smooth" }); totalIn.focus(); return; }
+  if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (keyMap[e.code]) { e.preventDefault(); document.activeElement?.blur(); send({ type: "cmd", cmd: keyMap[e.code] }); }
+});
+</script>
+</body>
+</html>
