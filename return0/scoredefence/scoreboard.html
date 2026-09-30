@@ -11,8 +11,7 @@
   .screen { width:100vw; height:100%; flex:none; position:relative; box-sizing:border-box; }
   /* メイン画面: 上にタイマー、下に4分割 */
   #main { display:flex; flex-direction:column; }
-  #timerbar { height:15vh; display:flex; align-items:center; justify-content:center; border-bottom:2px solid #000; }
-  #timer { font-size:11vh; font-weight:800; font-variant-numeric:tabular-nums; }
+  #timer { position:fixed; right:8px; bottom:32px; z-index:5; font-size:28px; font-weight:800; font-variant-numeric:tabular-nums; background:rgba(255,255,255,.85); padding:2px 8px; border-radius:4px; }
   #timer.ended { color:#dc2626; }
   #timer.paused { color:#888; }
   .grid { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; background:#000; min-height:0; }
@@ -29,6 +28,9 @@
   #embody img { max-width:100%; max-height:100%; object-fit:contain; }
   #emtext { font-size:10vmin; font-weight:800; color:#dc2626; }
   #status { position:fixed; right:8px; bottom:6px; font-size:12px; background:rgba(255,255,255,.85); padding:2px 6px; border-radius:4px; z-index:5; }
+  /* デバッグ表示(F1で切り替え。通常は非表示) */
+  #timer, #status { display:none; }
+  body.debug #timer, body.debug #status { display:block; }
   /* 設定画面 */
   #settings { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:20; align-items:center; justify-content:center; }
   #settings.open { display:flex; }
@@ -44,7 +46,6 @@
 <body>
 <div id="slider">
   <div class="screen" id="main">
-    <div id="timerbar"><div id="timer">--:--</div></div>
     <div class="grid">
       <div class="cell"><div class="name">Team1</div><div class="score" id="s0">-</div></div>
       <div class="cell"><div class="name">Team2</div><div class="score" id="s1">-</div></div>
@@ -57,10 +58,11 @@
     <div id="emhead"><div id="emlabel">緊急ミッション</div><div id="emtimer">01:00</div></div>
   </div>
 </div>
+<div id="timer">--:--</div>
 <div id="status">読み込み中…</div>
 
 <div id="settings"><div id="panel">
-  <h2>設定 <span class="hint">(3キーで開閉)</span></h2>
+  <h2>設定 <span class="hint">(Escapeキーで開閉)</span></h2>
   <div>全体タイマー(1キーでセットされる時間): <input type="number" id="totalMin" min="1"> 分</div>
   <p class="hint">緊急ミッション: 「残り時間」がその値になった時に画面が切り替わります。</p>
   <div id="list"></div>
@@ -231,13 +233,14 @@ document.getElementById("addBtn").onclick = () => { cfg.missions.push({ id: ++ui
 document.getElementById("closeBtn").onclick = toggleSettings;
 
 document.addEventListener("keydown", e => {
+  if (e.key === "F1") { e.preventDefault(); document.body.classList.toggle("debug"); return; }
   if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
-  if (e.key === "3") toggleSettings();
+  if (e.key === "Escape") toggleSettings();
   else if (settingsEl.classList.contains("open")) return;
-  else if (e.key === "1") setTimer();
-  else if (e.key === "2") startTimer();
-  else if (e.key === "9") togglePause();
-  else if (e.key === "8") endEmergency();
+  else if (e.key === "t") setTimer();
+  else if (e.key === "Enter") startTimer();
+  else if (e.key === " ") togglePause();
+  else if (e.key === "ArrowLeft") endEmergency();
   else if (e.key === "0") clearTimer();
 });
 </script>
