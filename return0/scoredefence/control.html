@@ -37,6 +37,8 @@
   <button data-cmd="pause">Space 一時停止/再開</button>
   <button data-cmd="clear">0 --:-- に戻す</button>
   <button data-cmd="closeEm">← 緊急ミッションを閉じる</button>
+  <button data-cmd="begin">F4 緊急ミッションを出題</button>
+  <button data-cmd="final">F12 最終スコア表示/戻す</button>
 </div>
 
 <h2 id="settingsH">設定 <span class="hint">(Escapeキーでここに移動)</span></h2>
@@ -115,12 +117,15 @@ function updateStatus(s) {
   document.getElementById("tstate").textContent =
     s.paused ? "一時停止中" : s.running ? "カウント中" : s.remaining === null ? "待機中(--:--)" : s.remaining === 0 ? "終了" : "セット済み(未開始)";
   document.getElementById("upd").textContent = s.status;
-  document.getElementById("emnow").textContent = s.em ? "緊急ミッション表示中 残り " + fmt(s.em.left) : "";
+  const info = [];
+  if (s.em) info.push(s.em.phase === "announce" ? "緊急ミッション予告中(F4で出題)" : "緊急ミッション表示中 残り " + fmt(s.em.left));
+  if (s.final) info.push("最終スコア表示中");
+  document.getElementById("emnow").textContent = info.join(" / ");
   document.querySelectorAll(".card").forEach(row => {
     const id = row.dataset.id, st = row.querySelector(".stat");
     const active = s.em && s.em.id === id;
     row.classList.toggle("active", !!active);
-    st.textContent = active ? "表示中 " + fmt(s.em.left) : s.done.includes(id) ? "発動済み" : "待機";
+    st.textContent = active ? (s.em.phase === "announce" ? "予告中" : "表示中 " + fmt(s.em.left)) : s.done.includes(id) ? "発動済み" : "待機";
   });
 }
 ch.onmessage = e => {
@@ -138,7 +143,7 @@ buildList();
 
 /* ---- ボタン/キー操作 ---- */
 document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => { send({ type: "cmd", cmd: b.dataset.cmd }); b.blur(); });
-const keyMap = { KeyT: "set", Enter: "start", NumpadEnter: "start", Space: "pause", ArrowLeft: "closeEm", Digit0: "clear", Numpad0: "clear" };
+const keyMap = { KeyT: "set", Enter: "start", NumpadEnter: "start", Space: "pause", ArrowLeft: "closeEm", F4: "begin", F12: "final", Digit0: "clear", Numpad0: "clear" };
 document.addEventListener("keydown", e => {
   if (e.code === "Escape") { document.getElementById("settingsH").scrollIntoView({ behavior: "smooth" }); totalIn.focus(); return; }
   if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;

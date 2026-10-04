@@ -13,7 +13,7 @@
   .grid { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; background:#000; min-height:0; }
   .cell { position:relative; background:#fff; display:flex; align-items:center; justify-content:center; }
   .name { position:absolute; top:1.5vmin; left:2.5vmin; font-size:4vmin; font-weight:700; }
-  .score { font-size:15vmin; font-weight:800; font-variant-numeric:tabular-nums; transition:color .3s; }
+  .score { font-size:15vmin; font-weight:800; font-family:'Zen Maru Gothic',sans-serif; font-variant-numeric:tabular-nums; transition:color .3s; }
   .score.changed { color:#dc2626; }
   #em { background:#fff; }
   #emhead { position:absolute; top:2vmin; left:3vmin; z-index:2; background:#fff; padding:.5vmin 2vmin; border:2px solid #dc2626; border-radius:1.5vmin; }
@@ -22,6 +22,10 @@
   #embody { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
   #embody img { max-width:100%; max-height:100%; object-fit:contain; }
   #emtext { font-size:10vmin; font-weight:800; color:#dc2626; }
+  #em.announce #emhead { display:none; }
+  #emtext.warn { animation:blink 1s infinite; }
+  @keyframes blink { 50% { opacity:.3; } }
+  canvas.cf { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   /* デバッグ表示(F1で切り替え。通常は非表示) */
   #timer { position:fixed; right:8px; bottom:32px; z-index:5; font-size:28px; font-weight:800; font-variant-numeric:tabular-nums; background:rgba(255,255,255,.85); padding:2px 8px; border-radius:4px; }
   #timer.ended { color:#dc2626; }
@@ -57,6 +61,7 @@ window.__onSheet = function (res) {
   const st = document.getElementById("status");
   try {
     if (res.status !== "ok") throw new Error(res.errors?.[0]?.message || "error");
+    if (finalMode) { st.textContent = "最終更新 " + new Date().toLocaleTimeString("ja-JP"); return; }
     const cells = res.table.rows[0]?.c || [];
     for (let i = 0; i < 4; i++) {
       const c = cells[i], text = c ? (c.f ?? (c.v ?? "")) : "";
@@ -80,6 +85,60 @@ function load() {
 }
 load(); setInterval(load, INTERVAL_MS);
 
+/* ========== 最終スコア表示(F12) + 紙吹雪 ========== */
+const FINAL_RANGE = "C9:F9";   // 「最終スコア」行
+let finalMode = false;
+const cf = {};
+window.__onFinal = function (res) {
+  if (!finalMode) return;
+  try {
+    if (res.status !== "ok") throw new Error(res.errors?.[0]?.message || "error");
+    const cells = res.table.rows[0]?.c || [], vals = [];
+    for (let i = 0; i < 4; i++) {
+      const c = cells[i], text = c ? (c.f ?? (c.v ?? "")) : "";
+      document.getElementById("s" + i).textContent = text === "" ? "-" : text;
+      vals.push(typeof c?.v === "number" ? c.v : NaN);
+    }
+    const max = Math.max(...vals.filter(v => !isNaN(v)));
+    clearConfetti();
+    vals.forEach((v, i) => { if (v === max) addConfetti(i); });
+  } catch (e) { finalMode = false; document.getElementById("status").textContent = "最終スコア取得失敗: " + e.message; }
+};
+function toggleFinal() {
+  if (finalMode) { exitFinal(); return; }
+  finalMode = true;
+  document.getElementById("jsonpFinal")?.remove();
+  const s = document.createElement("script");
+  s.id = "jsonpFinal";
+  s.onerror = () => { finalMode = false; document.getElementById("status").textContent = "最終スコア取得失敗"; };
+  s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:__onFinal&sheet=${encodeURIComponent(SHEET_NAME)}&range=${FINAL_RANGE}&headers=0&_=${Date.now()}`;
+  document.body.appendChild(s);
+}
+function exitFinal() { if (!finalMode) return; finalMode = false; clearConfetti(); load(); }
+function clearConfetti() { for (const k in cf) { cancelAnimationFrame(cf[k].raf); cf[k].cv.remove(); delete cf[k]; } }
+function addConfetti(i) {
+  const cell = document.getElementById("s" + i).parentElement;
+  const cv = document.createElement("canvas"); cv.className = "cf"; cell.appendChild(cv);
+  const ctx = cv.getContext("2d"), colors = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#a855f7", "#ec4899"];
+  let W = 0, H = 0;
+  const size = () => { W = cv.width = cell.clientWidth; H = cv.height = cell.clientHeight; };
+  size();
+  const mk = init => ({ x: Math.random() * W, y: init ? Math.random() * H : -20, w: 6 + Math.random() * 8, h: 10 + Math.random() * 10,
+    vy: 2 + Math.random() * 3, vx: -1 + Math.random() * 2, rot: Math.random() * 6.28, vr: -.2 + Math.random() * .4, c: colors[(Math.random() * colors.length) | 0] });
+  const parts = Array.from({ length: 140 }, () => mk(true));
+  const loop = () => {
+    if (cv.width !== cell.clientWidth || cv.height !== cell.clientHeight) size();
+    ctx.clearRect(0, 0, W, H);
+    for (const p of parts) {
+      p.y += p.vy; p.x += p.vx + Math.sin(p.y / 30); p.rot += p.vr;
+      if (p.y > H + 20) Object.assign(p, mk(false));
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+    }
+    cf[i].raf = requestAnimationFrame(loop);
+  };
+  cf[i] = { cv, raf: requestAnimationFrame(loop) };
+}
+
 /* ========== 設定(localStorage。操作画面control.htmlと共有) ========== */
 const DEFAULT_CFG = { total: 3600, missions: [
   { at: 2400, dur: 60, img: "" },   // 残り40:00
@@ -102,17 +161,34 @@ const slider = document.getElementById("slider");
 const emTimer = document.getElementById("emtimer");
 let emActive = null, emTick = null, emEnd = 0, done = new Set();
 
+let emPhase = null, autoPaused = false;
+const emScreen = document.getElementById("em");
+// 予告画面を出し、全体タイマーを一時停止する
 function startEmergency(m) {
   done.add(m.id);
-  emActive = m;
-  const n = cfg.missions.indexOf(m) + 1;
+  emActive = m; emPhase = "announce";
+  clearInterval(emTick); emTick = null;
+  if (tick) { remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000)); stop(); paused = true; autoPaused = true; render(); }
+  const body = document.getElementById("embody");
+  body.innerHTML = "";
+  const d = document.createElement("div"); d.id = "emtext"; d.className = "warn"; d.textContent = "緊急ミッションが出るぞ！";
+  body.appendChild(d);
+  emScreen.classList.add("announce");
+  slider.classList.add("em");
+}
+// F4: ミッションを出題し、緊急ミッションのタイマーを開始(全体タイマーも再開)
+function beginEmergency() {
+  if (emPhase !== "announce" || !emActive) return;
+  const m = emActive, n = cfg.missions.indexOf(m) + 1;
+  if (autoPaused) { autoPaused = false; startTimer(); }
+  emPhase = "running";
   document.getElementById("emlabel").textContent = "緊急ミッション " + n;
   const body = document.getElementById("embody");
   body.innerHTML = "";
   if (m.img) { const i = document.createElement("img"); i.src = m.img; body.appendChild(i); }
   else { const d = document.createElement("div"); d.id = "emtext"; d.textContent = "緊急ミッション " + n; body.appendChild(d); }
   emTimer.textContent = fmt(m.dur);
-  slider.classList.add("em");
+  emScreen.classList.remove("announce");
   runEm(m.dur);
 }
 function runEm(sec) {
@@ -125,8 +201,10 @@ function runEm(sec) {
   }, 250);
 }
 function endEmergency() {
-  clearInterval(emTick); emTick = null; emActive = null;
+  clearInterval(emTick); emTick = null; emActive = null; emPhase = null;
+  emScreen.classList.remove("announce");
   slider.classList.remove("em");
+  if (autoPaused) { autoPaused = false; startTimer(); }   // 予告中に閉じたら全体タイマーを再開
 }
 function checkMissions() {
   if (emActive || remaining === null || remaining <= 0) return;
@@ -144,7 +222,7 @@ function render() {
   timerEl.classList.toggle("paused", paused);
 }
 function stop() { clearInterval(tick); tick = null; }
-function setTimer() { stop(); paused = false; endEmergency(); done.clear(); remaining = cfg.total; render(); }
+function setTimer() { stop(); paused = false; autoPaused = false; exitFinal(); endEmergency(); done.clear(); remaining = cfg.total; render(); }
 function startTimer() {
   if (tick || remaining === null || remaining <= 0) return;
   paused = false;
@@ -154,12 +232,12 @@ function startTimer() {
     render(); checkMissions();
     if (remaining === 0) stop();
   }, 250);
-  if (emActive) runEm(emLeft);
+  if (emActive && emPhase === "running") runEm(emLeft);
   render(); checkMissions();
 }
 function togglePause() {
   if (paused) { startTimer(); return; }
-  if (!tick) return;
+  if (!tick || emPhase === "announce") return;
   remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
   if (emActive) {
     emLeft = Math.max(0, Math.round((emEnd - Date.now()) / 1000));
@@ -167,14 +245,14 @@ function togglePause() {
   }
   stop(); paused = true; render();
 }
-function clearTimer() { stop(); paused = false; endEmergency(); done.clear(); remaining = null; render(); }
+function clearTimer() { stop(); paused = false; autoPaused = false; exitFinal(); endEmergency(); done.clear(); remaining = null; render(); }
 
 /* ========== 操作画面(control.html)との連携 ========== */
 const ch = "BroadcastChannel" in window ? new BroadcastChannel("scoreboard") : null;
 function publish() {
   if (!ch) return;
   ch.postMessage({ type: "state", remaining, running: !!tick, paused,
-    em: emActive ? { id: emActive.id, left: emTick ? Math.max(0, Math.round((emEnd - Date.now()) / 1000)) : emLeft } : null,
+    em: emActive ? { id: emActive.id, phase: emPhase, left: emPhase === "announce" ? emActive.dur : emTick ? Math.max(0, Math.round((emEnd - Date.now()) / 1000)) : emLeft } : null, final: finalMode,
     done: [...done], status: document.getElementById("status").textContent });
 }
 if (ch) ch.onmessage = e => {
@@ -185,6 +263,8 @@ if (ch) ch.onmessage = e => {
     else if (d.cmd === "pause") togglePause();
     else if (d.cmd === "clear") clearTimer();
     else if (d.cmd === "closeEm") endEmergency();
+    else if (d.cmd === "begin") beginEmergency();
+    else if (d.cmd === "final") toggleFinal();
     else if (d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
   } else if (d.type === "cfg") loadCfg();
   publish();
@@ -194,14 +274,16 @@ setInterval(publish, 500);
 /* ========== キー操作 ========== */
 document.addEventListener("keydown", e => {
   if (e.key === "F1") { e.preventDefault(); document.body.classList.toggle("debug"); return; }
-  // キー配置: e.code を使うので、IMEオン/Caps Lockでも動きます
-  if (e.code === " ") e.preventDefault();
+  // e.code を使うので、IMEオン/Caps Lockでも動きます
+  if (e.code === "Space" || e.code === "F4" || e.code === "F12") e.preventDefault();
   if (e.code === "Escape") window.open("control.html", "sb_control", "width=980,height=860");
-  else if (e.code === "t") setTimer();
+  else if (e.code === "KeyT") setTimer();
   else if (e.code === "Enter" || e.code === "NumpadEnter") startTimer();
-  else if (e.code === " ") togglePause();
+  else if (e.code === "Space") togglePause();
   else if (e.code === "ArrowLeft") endEmergency();
-  else if (e.code === "0" || e.code === "Numpad0") clearTimer();
+  else if (e.code === "Digit0" || e.code === "Numpad0") clearTimer();
+  else if (e.code === "F4") beginEmergency();
+  else if (e.code === "F12") toggleFinal();
 });
 </script>
 </body>
