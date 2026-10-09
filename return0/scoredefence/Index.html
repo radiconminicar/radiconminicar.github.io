@@ -192,6 +192,7 @@ function startEmergency(m) {
   body.appendChild(d);
   emScreen.classList.add("announce");
   slider.classList.add("em");
+  bgmUpdate();
 }
 // F4: ミッションを出題し、緊急ミッションのタイマーを開始(全体タイマーも再開)
 function beginEmergency() {
@@ -222,6 +223,7 @@ function endEmergency() {
   emScreen.classList.remove("announce");
   slider.classList.remove("em");
   if (autoPaused) { autoPaused = false; startTimer(); }   // 予告中に閉じたら全体タイマーを再開
+  bgmUpdate();
 }
 function checkMissions() {
   if (emActive || remaining === null || remaining <= 0) return;
@@ -300,6 +302,7 @@ function setView(v) {
   sl.view = v;
   slider.classList.toggle("v-slides", v === "slides");
   document.getElementById("endScr").classList.toggle("on", v === "end");
+  bgmUpdate();
 }
 function slNext() {
   const dk = curDeck();
@@ -322,6 +325,44 @@ function showDeck(v) {                     // 1枚目から表示し直す
 }
 const showSlides = () => showDeck("slides");
 const showEnd = () => showDeck("end");
+
+/* ========== BGM ========== */
+// 前説=pre / スコア画面=game / 緊急ミッション(予告含む)=emergency / 後説=end。Mキーで再生/停止
+const BGM_FILES = { pre: "music/bgm_pre.mp3", game: "music/bgm_game.mp3", emergency: "music/bgm_emergency.mp3", end: "music/bgm_end.mp3" };
+const bgm = { on: true, cur: null, blocked: false, tracks: {} };
+for (const k in BGM_FILES) { const a = new Audio(BGM_FILES[k]); a.loop = true; a.preload = "auto"; bgm.tracks[k] = a; }
+function bgmWant() { return emActive ? "emergency" : sl.view === "slides" ? "pre" : sl.view === "end" ? "end" : "game"; }
+function bgmFade(a, to, ms, done) {
+  clearInterval(a._fade);
+  const from = a.volume, t0 = Date.now();
+  a._fade = setInterval(() => {
+    const r = Math.min(1, (Date.now() - t0) / ms);
+    a.volume = from + (to - from) * r;
+    if (r === 1) { clearInterval(a._fade); if (done) done(); }
+  }, 30);
+}
+function bgmUpdate() {
+  const want = bgm.on ? bgmWant() : null;
+  for (const k in bgm.tracks) {
+    const a = bgm.tracks[k];
+    if (k !== want && !a.paused) bgmFade(a, 0, 500, () => a.pause());
+  }
+  if (want && (want !== bgm.cur || bgm.tracks[want].paused)) {
+    const a = bgm.tracks[want];
+    if (want !== bgm.cur && want !== "game") a.currentTime = 0;   // スコア画面の曲だけは続きから
+    clearInterval(a._fade); a.volume = 0;
+    // 自動再生がブロックされたら、この画面での次のキー/クリック時に再試行
+    a.play().then(() => {
+      bgm.blocked = false;
+      if (bgm.on && bgm.cur === want) bgmFade(a, 1, 500); else a.pause();   // 再生開始までに曲が切り替わった場合
+    }).catch(() => { bgm.blocked = true; });
+  }
+  if (want) bgm.cur = want;
+}
+function toggleBgm() { bgm.on = !bgm.on; bgmUpdate(); }
+const bgmRetry = () => { if (bgm.blocked) bgmUpdate(); };
+addEventListener("keydown", bgmRetry, true); addEventListener("mousedown", bgmRetry, true);
+bgmUpdate();
 
 /* ========== 操作画面(control.html)を開く ========== */
 // 既に開いていれば再読み込みせずにそのまま使う
@@ -347,7 +388,8 @@ function publish() {
     em: emActive ? { id: emActive.id, phase: emPhase, left: emPhase === "announce" ? emActive.dur : emTick ? Math.max(0, Math.round((emEnd - Date.now()) / 1000)) : emLeft } : null, final: finalMode,
     done: [...done], status: document.getElementById("status").textContent,
     view: sl.view, slide: curDeck()?.ready ? { s: curDeck().s, t: curDeck().t, steps: curDeck().steps[curDeck().s] || 0, last: curDeck().last } : null,
-    slErr: [decks.slides.err, decks.end.err].filter(Boolean).join(" / ") });
+    slErr: [decks.slides.err, decks.end.err].filter(Boolean).join(" / "),
+    bgm: { on: bgm.on, track: bgm.cur, blocked: bgm.blocked } });
 }
 if (ch) ch.onmessage = e => {
   const d = e.data;
@@ -363,6 +405,7 @@ if (ch) ch.onmessage = e => {
     else if (d.cmd === "slBack") slBack();
     else if (d.cmd === "slFirst") showDeck(sl.view === "end" ? "end" : "slides");
     else if (d.cmd === "endStart") showEnd();
+    else if (d.cmd === "bgm") toggleBgm();
     else if (d.cmd === "slExit") setView("main");
     else if (d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
   } else if (d.type === "cfg") loadCfg();
@@ -383,6 +426,7 @@ document.addEventListener("keydown", e => {
   }
   if (e.code === "Home") { e.preventDefault(); showDeck(sl.view === "end" ? "end" : "slides"); return; }
   if (e.code === "KeyE") { if (!e.repeat) showEnd(); return; }
+  if (e.code === "KeyM") { if (!e.repeat) toggleBgm(); return; }
   if (e.code === "Digit1" || e.code === "Numpad1") openControl();
   else if (e.code === "KeyT") setTimer();
   else if (e.code === "Enter" || e.code === "NumpadEnter") startTimer();
