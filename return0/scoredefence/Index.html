@@ -119,19 +119,20 @@ window.__onFinal = function (res) {
     const max = Math.max(...vals.filter(v => !isNaN(v)));
     clearConfetti();
     vals.forEach((v, i) => { if (v === max) addConfetti(i); });
-  } catch (e) { finalMode = false; document.getElementById("status").textContent = "最終スコア取得失敗: " + e.message; }
+  } catch (e) { finalMode = false; bgmUpdate(); document.getElementById("status").textContent = "最終スコア取得失敗: " + e.message; }
 };
 function toggleFinal() {
   if (finalMode) { exitFinal(); return; }
   finalMode = true;
+  bgmUpdate();
   document.getElementById("jsonpFinal")?.remove();
   const s = document.createElement("script");
   s.id = "jsonpFinal";
-  s.onerror = () => { finalMode = false; document.getElementById("status").textContent = "最終スコア取得失敗"; };
+  s.onerror = () => { finalMode = false; bgmUpdate(); document.getElementById("status").textContent = "最終スコア取得失敗"; };
   s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:__onFinal&sheet=${encodeURIComponent(SHEET_NAME)}&range=${FINAL_RANGE}&headers=0&_=${Date.now()}`;
   document.body.appendChild(s);
 }
-function exitFinal() { if (!finalMode) return; finalMode = false; clearConfetti(); load(); }
+function exitFinal() { if (!finalMode) return; finalMode = false; clearConfetti(); load(); bgmUpdate(); }
 function clearConfetti() { for (const k in cf) { cancelAnimationFrame(cf[k].raf); cf[k].cv.remove(); delete cf[k]; } }
 function addConfetti(i) {
   const cell = document.getElementById("s" + i).parentElement;
@@ -310,12 +311,14 @@ function slNext() {
   if (dk.t < (dk.steps[dk.s] || 0)) { dk.t++; slKey(dk, "Enter"); }
   else if (dk.s < dk.last) { dk.s++; dk.t = 0; slKey(dk, "Enter"); }
   else if (sl.view === "slides") setView("main");   // 前説の最後が終わったらスコア画面へ
+  bgmUpdate();
 }
 function slBack() {
   const dk = curDeck();
   if (!dk || !dk.ready) return;
   if (dk.t > 0) { dk.t--; slKey(dk, "ArrowLeft"); }
   else if (dk.s > 1) { dk.s--; dk.t = dk.steps[dk.s] || 0; slKey(dk, "ArrowLeft"); }
+  bgmUpdate();
 }
 function showDeck(v) {                     // 1枚目から表示し直す
   const dk = decks[v];
@@ -327,11 +330,37 @@ const showSlides = () => showDeck("slides");
 const showEnd = () => showDeck("end");
 
 /* ========== BGM ========== */
-// 前説=pre / スコア画面=game / 緊急ミッション(予告含む)=emergency / 後説=end。Mキーで再生/停止
-const BGM_FILES = { pre: "music/bgm_pre.mp3", game: "music/bgm_game.mp3", emergency: "music/bgm_emergency.mp3", end: "music/bgm_end.mp3" };
-const bgm = { on: true, cur: null, blocked: false, tracks: {} };
-for (const k in BGM_FILES) { const a = new Audio(BGM_FILES[k]); a.loop = true; a.preload = "auto"; bgm.tracks[k] = a; }
-function bgmWant() { return emActive ? "emergency" : sl.view === "slides" ? "pre" : sl.view === "end" ? "end" : "game"; }
+// 自動選曲(優先順):
+//   緊急ミッション(予告含む)=emergency / 前説1枚目=entry / 前説2枚目以降=pre / 後説=end /
+//   最終スコア表示=bestteam / 最後の緊急ミッション終了後のスコア画面=last10 / スコア画面=game
+// Mキーで再生/停止。操作画面から手動で曲を選ぶと、次に自動選曲が切り替わるまでその曲を流す
+const BGM_FILES = {
+  entry: "music/bgm_entry.mp3", pre: "music/bgm_pre.mp3", game: "music/bgm_game.mp3", last10: "music/bgm_last10.mp3",
+  emergency: "music/bgm_emergency.mp3", bestteam: "music/bgm_bestteam.mp3", end: "music/bgm_end.mp3"
+};
+const BGM_RESUME = new Set([BGM_FILES.game, BGM_FILES.last10]);   // スコア画面の曲は緊急ミッション明けに続きから
+const bgm = { on: true, cur: null, blocked: false, tracks: {}, manual: null };
+function bgmTrack(file) {
+  if (!bgm.tracks[file]) { const a = new Audio(file); a.loop = true; a.preload = "auto"; bgm.tracks[file] = a; }
+  return bgm.tracks[file];
+}
+Object.values(BGM_FILES).forEach(bgmTrack);
+function allMissionsDone() {
+  const ms = cfg.missions.filter(m => m.at > 0);
+  return ms.length > 0 && ms.every(m => done.has(m.id));
+}
+function bgmAutoKey() {
+  if (emActive) return "emergency";
+  if (sl.view === "slides") return decks.slides.s === 1 ? "entry" : "pre";
+  if (sl.view === "end") return "end";
+  if (finalMode) return "bestteam";
+  return allMissionsDone() ? "last10" : "game";
+}
+function bgmWant() {
+  const key = bgmAutoKey();
+  if (bgm.manual && bgm.manual.base !== key) bgm.manual = null;    // 場面が変わったら自動選曲に戻る
+  return bgm.manual ? bgm.manual.file : BGM_FILES[key];
+}
 function bgmFade(a, to, ms, done) {
   clearInterval(a._fade);
   const from = a.volume, t0 = Date.now();
@@ -343,13 +372,13 @@ function bgmFade(a, to, ms, done) {
 }
 function bgmUpdate() {
   const want = bgm.on ? bgmWant() : null;
-  for (const k in bgm.tracks) {
-    const a = bgm.tracks[k];
-    if (k !== want && !a.paused) bgmFade(a, 0, 500, () => a.pause());
+  for (const f in bgm.tracks) {
+    const a = bgm.tracks[f];
+    if (f !== want && !a.paused) bgmFade(a, 0, 500, () => a.pause());
   }
   if (want && (want !== bgm.cur || bgm.tracks[want].paused)) {
-    const a = bgm.tracks[want];
-    if (want !== bgm.cur && want !== "game") a.currentTime = 0;   // スコア画面の曲だけは続きから
+    const a = bgmTrack(want);
+    if (want !== bgm.cur && !BGM_RESUME.has(want)) a.currentTime = 0;
     clearInterval(a._fade); a.volume = 0;
     // 自動再生がブロックされたら、この画面での次のキー/クリック時に再試行
     a.play().then(() => {
@@ -360,8 +389,17 @@ function bgmUpdate() {
   if (want) bgm.cur = want;
 }
 function toggleBgm() { bgm.on = !bgm.on; bgmUpdate(); }
+function playManual(file) {
+  if (!/^music\/[^\/]+\.mp3$/i.test(file)) return;
+  bgm.manual = { file, base: bgmAutoKey() };
+  bgm.on = true;
+  bgmTrack(file).currentTime = 0;                                  // 手動で選んだ曲は常に頭から
+  bgmUpdate();
+}
+function bgmAuto() { bgm.manual = null; bgmUpdate(); }
 const bgmRetry = () => { if (bgm.blocked) bgmUpdate(); };
 addEventListener("keydown", bgmRetry, true); addEventListener("mousedown", bgmRetry, true);
+setInterval(() => { if (bgm.on && !bgm.blocked) bgmUpdate(); }, 1000);   // ミッション設定の変更などにも追従
 bgmUpdate();
 
 /* ========== 操作画面(control.html)を開く ========== */
@@ -389,7 +427,7 @@ function publish() {
     done: [...done], status: document.getElementById("status").textContent,
     view: sl.view, slide: curDeck()?.ready ? { s: curDeck().s, t: curDeck().t, steps: curDeck().steps[curDeck().s] || 0, last: curDeck().last } : null,
     slErr: [decks.slides.err, decks.end.err].filter(Boolean).join(" / "),
-    bgm: { on: bgm.on, track: bgm.cur, blocked: bgm.blocked } });
+    bgm: { on: bgm.on, track: bgm.cur, blocked: bgm.blocked, manual: !!bgm.manual } });
 }
 if (ch) ch.onmessage = e => {
   const d = e.data;
@@ -406,6 +444,8 @@ if (ch) ch.onmessage = e => {
     else if (d.cmd === "slFirst") showDeck(sl.view === "end" ? "end" : "slides");
     else if (d.cmd === "endStart") showEnd();
     else if (d.cmd === "bgm") toggleBgm();
+    else if (d.cmd === "bgmPlay") playManual(d.file);
+    else if (d.cmd === "bgmAuto") bgmAuto();
     else if (d.cmd === "slExit") setView("main");
     else if (d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
   } else if (d.type === "cfg") loadCfg();

@@ -46,6 +46,13 @@
   <button data-cmd="bgm">M BGM 再生/停止</button>
   <span id="bgmstate" class="hint"></span>
 </div>
+<div class="btns">
+  <select id="bgmSel" style="font-size:15px;padding:6px"><option value="">読み込み中…</option></select>
+  <button id="bgmPlayBtn">▶ 選んだ曲を再生</button>
+  <button data-cmd="bgmAuto">自動選曲に戻す</button>
+  <button id="bgmReload">一覧を更新</button>
+</div>
+<p class="hint" style="margin:6px 0 0">手動で選んだ曲は、次に場面が切り替わる(スライドが進む・緊急ミッションが始まる等)と自動選曲に戻ります。</p>
 <div id="bgmerr" class="off"></div>
 
 <h2>スライド操作 <span class="hint">(前説: slides.html / 後説: slides_end.html)</span></h2>
@@ -143,9 +150,9 @@ function updateStatus(s) {
     ? "表示中: " + (s.view === "end" ? "後説" : "前説") + "スライド" + (s.slide ? " " + s.slide.s + "/" + s.slide.last + "(ステップ " + s.slide.t + "/" + s.slide.steps + ")" : "")
     : "表示中: スコア画面";
   document.getElementById("slerr").textContent = s.slErr || "";
-  const BGM_NAMES = { pre: "前説(bgm_pre)", game: "スコア画面(bgm_game)", emergency: "緊急ミッション(bgm_emergency)", end: "後説(bgm_end)" };
   if (s.bgm) {
-    document.getElementById("bgmstate").textContent = (s.bgm.on ? "再生中: " : "停止中") + (s.bgm.on ? BGM_NAMES[s.bgm.track] || "" : "");
+    document.getElementById("bgmstate").textContent = s.bgm.on
+      ? "再生中: " + String(s.bgm.track || "").replace(/^music\//, "") + (s.bgm.manual ? "(手動)" : "(自動)") : "停止中";
     document.getElementById("bgmerr").textContent = s.bgm.on && s.bgm.blocked
       ? "ブラウザに自動再生をブロックされています。スコアボードの画面を一度クリックするかキーを押してください。" : "";
   }
@@ -169,13 +176,53 @@ setInterval(() => {
 send({ type: "hello" });
 buildList();
 
+/* ---- BGMの手動選曲 ---- */
+// musicフォルダのmp3一覧を取得する。
+//   1) フォルダ一覧ページ(ローカルサーバー等)  2) GitHub API(GitHub Pages上)  3) 既知のファイル名
+const BGM_KNOWN = ["bgm_entry.mp3", "bgm_pre.mp3", "bgm_game.mp3", "bgm_last10.mp3", "bgm_emergency.mp3", "bgm_bestteam.mp3", "bgm_end.mp3", "bgm_out.mp3"];
+async function listMusic() {
+  try {
+    const r = await fetch("music/", { cache: "no-store" });
+    if (r.ok) {
+      const names = [...(await r.text()).matchAll(/href="([^"?#]+\.mp3)"/gi)].map(m => decodeURIComponent(m[1].split("/").pop()));
+      if (names.length) return { names, src: "フォルダから取得" };
+    }
+  } catch (e) {}
+  try {
+    const m = location.hostname.match(/^([^.]+)\.github\.io$/);
+    if (m) {
+      const dir = location.pathname.replace(/[^\/]*$/, "") + "music";
+      const r = await fetch(`https://api.github.com/repos/${m[1]}/${location.hostname}/contents${dir}`, { cache: "no-store" });
+      if (r.ok) {
+        const names = (await r.json()).filter(f => f.type === "file" && /\.mp3$/i.test(f.name)).map(f => f.name);
+        if (names.length) return { names, src: "GitHubから取得" };
+      }
+    }
+  } catch (e) {}
+  return { names: BGM_KNOWN, src: "既定の一覧" };
+}
+const bgmSel = document.getElementById("bgmSel");
+async function buildMusicList() {
+  const keep = bgmSel.value;
+  const { names, src } = await listMusic();
+  bgmSel.innerHTML = "";
+  [...new Set(names)].sort().forEach(n => {
+    const o = document.createElement("option"); o.value = "music/" + n; o.textContent = n; bgmSel.appendChild(o);
+  });
+  if (keep && [...bgmSel.options].some(o => o.value === keep)) bgmSel.value = keep;
+  bgmSel.title = src;
+}
+document.getElementById("bgmPlayBtn").onclick = e => { if (bgmSel.value) send({ type: "cmd", cmd: "bgmPlay", file: bgmSel.value }); e.target.blur(); };
+document.getElementById("bgmReload").onclick = e => { buildMusicList(); e.target.blur(); };
+buildMusicList();
+
 /* ---- ボタン/キー操作 ---- */
 document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => { send({ type: "cmd", cmd: b.dataset.cmd }); b.blur(); });
 const keyMap = { KeyT: "set", Enter: "start", NumpadEnter: "start", Space: "pause", ArrowLeft: "closeEm", F4: "begin", F12: "final", KeyM: "bgm", Digit0: "clear", Numpad0: "clear" };
 const slideKeys = { PageDown: "slNext", PageUp: "slBack", Home: "slFirst", KeyE: "endStart" };   // スライド用(タイマー操作と別のキー)
 document.addEventListener("keydown", e => {
   if (e.code === "Escape") { document.getElementById("settingsH").scrollIntoView({ behavior: "smooth" }); totalIn.focus(); return; }
-  if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   if (slideKeys[e.code]) { e.preventDefault(); send({ type: "cmd", cmd: slideKeys[e.code] }); return; }
   if (keyMap[e.code]) { e.preventDefault(); document.activeElement?.blur(); send({ type: "cmd", cmd: keyMap[e.code] }); }
 });
