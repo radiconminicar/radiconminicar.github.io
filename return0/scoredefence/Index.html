@@ -4,10 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
   html, body { height:100%; margin:0; overflow:hidden; background:#fff; color:#000; font-family:"Hiragino Sans","Yu Gothic","Meiryo",sans-serif; }
-  #slider { display:flex; width:200vw; height:100%; transition:transform .7s ease-in-out; }
-  #slider.em { transform:translateX(-100vw); }
+  #slider { display:flex; width:300vw; height:100%; transform:translateX(-100vw); transition:transform .7s ease-in-out; }
+  #slider.v-slides { transform:translateX(0); }
+  #slider.em { transform:translateX(-200vw); }
+  #slides { background:#111; }
+  #slidesFrame { display:block; width:100%; height:100%; border:0; pointer-events:none; }
   .screen { width:100vw; height:100%; flex:none; position:relative; box-sizing:border-box; }
   #main { display:flex; flex-direction:column; }
   .grid { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; background:#000; min-height:0; }
@@ -36,7 +41,8 @@
 </style>
 </head>
 <body>
-<div id="slider">
+<div id="slider" class="v-slides">
+  <div class="screen" id="slides"><iframe id="slidesFrame" src="slides.html" title="slides" tabindex="-1"></iframe></div>
   <div class="screen" id="main">
     <div class="grid">
       <div class="cell"><div class="name">Team1</div><div class="score" id="s0">-</div></div>
@@ -55,6 +61,12 @@
 
 <script>
 /* ========== スコア取得 ========== */
+// 数値は3桁区切り(1,234)で表示。数値でないセルはシートの表示文字列をそのまま使う
+function scoreText(c) {
+  if (!c) return "";
+  if (typeof c.v === "number") return c.v.toLocaleString("en-US");
+  return c.f ?? (c.v ?? "");
+}
 const SHEET_ID = "1SBp0oQzCXvHXjJiSSaP_IdJwrLUkB9OYhSfoGcw49Ms";
 const SHEET_NAME = "Score", RANGE = "C14:F14", INTERVAL_MS = 5000;
 window.__onSheet = function (res) {
@@ -64,7 +76,7 @@ window.__onSheet = function (res) {
     if (finalMode) { st.textContent = "最終更新 " + new Date().toLocaleTimeString("ja-JP"); return; }
     const cells = res.table.rows[0]?.c || [];
     for (let i = 0; i < 4; i++) {
-      const c = cells[i], text = c ? (c.f ?? (c.v ?? "")) : "";
+      const c = cells[i], text = scoreText(c);
       const el = document.getElementById("s" + i);
       if (el.textContent !== String(text)) {
         el.textContent = text === "" ? "-" : text;
@@ -86,7 +98,7 @@ function load() {
 load(); setInterval(load, INTERVAL_MS);
 
 /* ========== 最終スコア表示(F12) + 紙吹雪 ========== */
-const FINAL_RANGE = "C9:F9";   // 「最終スコア」行
+const FINAL_RANGE = "C13:F13";   // 「最終スコア」行
 let finalMode = false;
 const cf = {};
 window.__onFinal = function (res) {
@@ -95,7 +107,7 @@ window.__onFinal = function (res) {
     if (res.status !== "ok") throw new Error(res.errors?.[0]?.message || "error");
     const cells = res.table.rows[0]?.c || [], vals = [];
     for (let i = 0; i < 4; i++) {
-      const c = cells[i], text = c ? (c.f ?? (c.v ?? "")) : "";
+      const c = cells[i], text = scoreText(c);
       document.getElementById("s" + i).textContent = text === "" ? "-" : text;
       vals.push(typeof c?.v === "number" ? c.v : NaN);
     }
@@ -247,13 +259,57 @@ function togglePause() {
 }
 function clearTimer() { stop(); paused = false; autoPaused = false; exitFinal(); endEmergency(); done.clear(); remaining = null; render(); }
 
+/* ========== スライド(slides.html を iframe で参照) ========== */
+// slides.html は書き換えず、キー入力(Enter / ←)を iframe に送って進めます。
+// 最後のスライドの次で、スコア画面に切り替わります。
+const slideFrame = document.getElementById("slidesFrame");
+const sl = { ready: false, s: 1, t: 0, last: 1, steps: {}, view: "slides", err: "" };
+function slInit() {
+  try {
+    const w = slideFrame.contentWindow, d = slideFrame.contentDocument;
+    if (!d || typeof w.__go !== "function") throw new Error("slides.html を読み込み中");
+    const src = [...d.scripts].map(x => x.textContent).join("\n");
+    const m1 = src.match(/var\s+STEPS\s*=\s*(\{[^}]*\})/), m2 = src.match(/var\s+LAST\s*=\s*(\d+)/);
+    if (!m1 || !m2) throw new Error("slides.html の STEPS/LAST が見つかりません");
+    sl.steps = JSON.parse(m1[1].replace(/(\d+)\s*:/g, '"$1":'));
+    sl.last = +m2[1]; sl.ready = true; sl.err = "";
+  } catch (e) {
+    sl.ready = false;
+    sl.err = (e && e.name === "SecurityError") ? "スライド連携不可(file://ではなくGitHub Pagesかローカルサーバーで開いてください)" : e.message;
+  }
+}
+slideFrame.addEventListener("load", slInit);
+const slWait = setInterval(() => { if (sl.ready) clearInterval(slWait); else slInit(); }, 500);
+function slKey(key) {
+  const w = slideFrame.contentWindow;
+  w.dispatchEvent(new w.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+}
+function setView(v) { sl.view = v; slider.classList.toggle("v-slides", v === "slides"); }
+function slNext() {
+  if (!sl.ready || sl.view !== "slides") return;
+  if (sl.t < (sl.steps[sl.s] || 0)) { sl.t++; slKey("Enter"); }
+  else if (sl.s < sl.last) { sl.s++; sl.t = 0; slKey("Enter"); }
+  else setView("main");                    // 最後のスライドが終わったらスコア画面へ
+}
+function slBack() {
+  if (!sl.ready || sl.view !== "slides") return;
+  if (sl.t > 0) { sl.t--; slKey("ArrowLeft"); }
+  else if (sl.s > 1) { sl.s--; sl.t = sl.steps[sl.s] || 0; slKey("ArrowLeft"); }
+}
+function showSlides() {                    // 1枚目から表示し直す
+  sl.s = 1; sl.t = 0;
+  if (sl.ready) slideFrame.contentWindow.__go(1, 0);
+  setView("slides");
+}
+
 /* ========== 操作画面(control.html)との連携 ========== */
 const ch = "BroadcastChannel" in window ? new BroadcastChannel("scoreboard") : null;
 function publish() {
   if (!ch) return;
   ch.postMessage({ type: "state", remaining, running: !!tick, paused,
     em: emActive ? { id: emActive.id, phase: emPhase, left: emPhase === "announce" ? emActive.dur : emTick ? Math.max(0, Math.round((emEnd - Date.now()) / 1000)) : emLeft } : null, final: finalMode,
-    done: [...done], status: document.getElementById("status").textContent });
+    done: [...done], status: document.getElementById("status").textContent,
+    view: sl.view, slide: sl.ready ? { s: sl.s, t: sl.t, steps: sl.steps[sl.s] || 0, last: sl.last } : null, slErr: sl.err });
 }
 if (ch) ch.onmessage = e => {
   const d = e.data;
@@ -265,6 +321,10 @@ if (ch) ch.onmessage = e => {
     else if (d.cmd === "closeEm") endEmergency();
     else if (d.cmd === "begin") beginEmergency();
     else if (d.cmd === "final") toggleFinal();
+    else if (d.cmd === "slNext") slNext();
+    else if (d.cmd === "slBack") slBack();
+    else if (d.cmd === "slFirst") showSlides();
+    else if (d.cmd === "slExit") setView("main");
     else if (d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
   } else if (d.type === "cfg") loadCfg();
   publish();
@@ -276,6 +336,13 @@ document.addEventListener("keydown", e => {
   if (e.key === "F1") { e.preventDefault(); document.body.classList.toggle("debug"); return; }
   // e.code を使うので、IMEオン/Caps Lockでも動きます
   if (e.code === "Space" || e.code === "F4" || e.code === "F12") e.preventDefault();
+  // スライド画面では slides.html の操作(Enter/Space/→/↓/PageDown=進む、Backspace/←/↑/PageUp=戻る、F=全画面)を適用
+  if (sl.view === "slides" && !emActive) {
+    if (["Enter", "NumpadEnter", "Space", "ArrowRight", "ArrowDown", "PageDown"].includes(e.code)) { e.preventDefault(); if (!e.repeat) slNext(); return; }
+    if (["Backspace", "ArrowLeft", "ArrowUp", "PageUp"].includes(e.code)) { e.preventDefault(); if (!e.repeat) slBack(); return; }
+    if (e.code === "KeyF") { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); return; }
+  }
+  if (e.code === "Home") { e.preventDefault(); showSlides(); return; }
   if (e.code === "Escape") window.open("control.html", "sb_control", "width=980,height=860");
   else if (e.code === "KeyT") setTimer();
   else if (e.code === "Enter" || e.code === "NumpadEnter") startTimer();
