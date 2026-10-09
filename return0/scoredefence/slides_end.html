@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>スライド(後説)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#111;overflow:hidden;cursor:none}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;background:#fff;overflow:hidden;transform-origin:0 0;
+ font-family:'Zen Maru Gothic','Zen Maru Gothic Medium','Hiragino Maru Gothic ProN','Yu Gothic','Meiryo',sans-serif;font-weight:500;color:#000}
+#stage *{box-sizing:border-box}
+#stage [data-a]{position:absolute}
+.tb{position:absolute;padding:7.2px 14.4px;white-space:nowrap}
+.bp{padding-left:50.4px}
+.bp::before{content:'•';position:absolute;left:14.4px;font-family:Arial,sans-serif}
+.hid{visibility:hidden!important}
+.fx{animation-fill-mode:both;animation-timing-function:linear;animation-delay:var(--del);animation-duration:var(--dur)}
+.fx-split-v{animation-name:kfSplitV}
+.fx-zoom{animation-name:kfZoom}
+.fx-fly-bottom{animation-name:kfFlyB}
+@keyframes kfSplitV{from{clip-path:inset(0 50% 0 50%)}to{clip-path:inset(0)}}
+@keyframes kfZoom{from{scale:0;opacity:0}to{scale:1;opacity:1}}
+@keyframes kfFlyB{from{translate:0 var(--fy)}to{translate:0 0}}
+#hint{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);color:#fff;background:rgba(0,0,0,.6);font:14px sans-serif;padding:8px 14px;border-radius:8px;transition:opacity .6s;pointer-events:none;z-index:9}
+</style></head><body>
+<div id="stage">
+<!-- スライド1 -->
+<div class="tb" style="left:727.35px;top:209.45px;width:465.3px;height:58.16px;line-height:43.76px;font-size:36px" data-a="100">これは後説のスライドです</div>
+<svg style="left:333.09px;top:423.27px;width:338.91px;height:308.36px;overflow:visible" viewBox="0 0 338.91 308.36" data-a="101" data-fx="split-v" data-del="0" data-dur="500"><polygon points="169.455,0 338.91,308.36 0,308.36" fill="#156082" stroke="#042433" stroke-width="3" stroke-linejoin="round"/></svg>
+<svg style="left:1363.64px;top:447.27px;width:338.91px;height:308.36px;overflow:visible" viewBox="0 0 338.91 308.36" data-a="101" data-fx="zoom" data-del="500" data-dur="500"><polygon points="169.455,0 338.91,308.36 0,308.36" fill="#156082" stroke="#042433" stroke-width="3" stroke-linejoin="round"/></svg>
+<!-- スライド2 -->
+<div class="tb" style="left:132px;top:57.5px;width:1656px;height:208.75px;line-height:194.35px;font-size:88px" data-a="200">かいせつ</div>
+<div class="tb bp" style="left:132px;top:287.5px;width:1656px;line-height:60.5px;font-size:56px" data-a="200">ツルはおり紙じゃ作れないよ</div>
+<div class="tb bp" style="left:132px;top:368px;width:1656px;line-height:60.5px;font-size:56px" data-a="201" data-fx="fly-bottom" data-del="0" data-dur="500">ダイヤはトランプでいいよ</div>
+<div class="tb bp" style="left:132px;top:448.5px;width:1656px;line-height:60.5px;font-size:56px" data-a="201" data-fx="fly-bottom" data-del="500" data-dur="500">わ～い</div>
+</div>
+<div id="hint">Enter / → / クリックで進む　Backspace / ← で戻る　F で全画面</div>
+<script>
+(function(){
+var stage=document.getElementById('stage'),hint=document.getElementById('hint');
+var els=[].slice.call(stage.querySelectorAll('[data-a]'));
+// steps per slide (clicks): slide number -> number of click steps
+var STEPS={1:1,2:1};
+var LAST=2;
+var cur={s:1,t:0},shown=new Map(),first=true;
+function fit(){var k=Math.min(innerWidth/1920,innerHeight/1080);stage.style.transform='translate('+(-960*k)+'px,'+(-540*k)+'px) scale('+k+')';}
+addEventListener('resize',fit);fit();
+function P(){return cur.s*100+cur.t}
+function render(animate){
+  var p=P();
+  els.forEach(function(e){
+    var a=+e.dataset.a,u=e.dataset.u?+e.dataset.u:(Math.floor(a/100)+1)*100;   // default: element lives until the end of its slide
+    var vis=p>=a&&p<u,was=shown.get(e)||false;
+    var cls=function(){return (e.getAttribute('class')||'').replace(/\bfx[-\w]*/g,'').trim();};
+    if(vis&&!was){
+      e.classList.remove('hid');
+      var fx=e.dataset.fx;
+      e.setAttribute('class',cls());
+      if(animate&&fx){
+        if(fx==='fly-bottom')e.style.setProperty('--fy',(1080-parseFloat(e.style.top)+20)+'px');
+        e.style.setProperty('--del',e.dataset.del+'ms');e.style.setProperty('--dur',(+e.dataset.dur||1)+'ms');
+        void e.getBoundingClientRect();
+        e.classList.add('fx','fx-'+fx);
+      }
+    } else if(!vis&&was){
+      e.setAttribute('class',cls());e.classList.add('hid');
+    } else if(!vis&&!was&&first){e.classList.add('hid');}
+    shown.set(e,vis);
+  });
+  first=false;
+}
+function go(s,t,animate){cur={s:s,t:t};render(animate);}
+function next(){
+  if(cur.t<STEPS[cur.s])go(cur.s,cur.t+1,true);
+  else if(cur.s<LAST)go(cur.s+1,0,true);
+}
+function back(){
+  if(cur.t>0)go(cur.s,cur.t-1,false);
+  else if(cur.s>1)go(cur.s-1,STEPS[cur.s-1],false);
+}
+render(true);
+addEventListener('keydown',function(e){
+  if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'){e.preventDefault();next();}
+  else if(e.key==='Backspace'||e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();back();}
+  else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
+  else if(e.key==='Home'){go(1,0,false);}
+  hint.style.opacity=0;
+});
+addEventListener('mousedown',function(e){if(e.button===0){next();hint.style.opacity=0;}});
+setTimeout(function(){hint.style.opacity=0},5000);
+window.__go=function(s,t){go(s,t,false)};
+})();
+</script></body></html>

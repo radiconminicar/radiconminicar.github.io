@@ -41,18 +41,19 @@
   <button data-cmd="final">F12 最終スコア表示/戻す</button>
 </div>
 
-<h2>スライド操作 <span class="hint">(slides.html)</span></h2>
+<h2>スライド操作 <span class="hint">(前説: slides.html / 後説: slides_end.html)</span></h2>
 <div class="btns" style="margin-top:0">
   <button data-cmd="slBack">PageUp 前へ</button>
   <button data-cmd="slNext">PageDown 次へ</button>
   <button data-cmd="slFirst">Home 最初から表示</button>
+  <button data-cmd="endStart">E 後説スライドへ</button>
   <button data-cmd="slExit">スコア画面へ</button>
   <span id="slstate" class="hint"></span>
 </div>
 <div id="slerr" class="off"></div>
 
 <h2 id="settingsH">設定 <span class="hint">(Escapeキーでここに移動)</span></h2>
-<div>全体タイマー(1でセットされる時間): <input type="number" id="totalMin" min="1" style="width:70px"> 分</div>
+<div>全体タイマー(Tでセットされる時間): <input type="number" id="totalMin" min="1" style="width:70px"> 分</div>
 <h2>緊急ミッション</h2>
 <p class="hint">「残り」が全体タイマーの残り時間です。その値以下になると発動します。画像は、同じフォルダに置いたファイルの相対パス(例: images/m1.png)か、アップロードで指定できます。</p>
 <div id="list"></div>
@@ -131,8 +132,8 @@ function updateStatus(s) {
   if (s.em) info.push(s.em.phase === "announce" ? "緊急ミッション予告中(F4で出題)" : "緊急ミッション表示中 残り " + fmt(s.em.left));
   if (s.final) info.push("最終スコア表示中");
   document.getElementById("emnow").textContent = info.join(" / ");
-  document.getElementById("slstate").textContent = s.view === "slides"
-    ? "表示中: スライド" + (s.slide ? " " + s.slide.s + "/" + s.slide.last + "(ステップ " + s.slide.t + "/" + s.slide.steps + ")" : "")
+  document.getElementById("slstate").textContent = s.view === "slides" || s.view === "end"
+    ? "表示中: " + (s.view === "end" ? "後説" : "前説") + "スライド" + (s.slide ? " " + s.slide.s + "/" + s.slide.last + "(ステップ " + s.slide.t + "/" + s.slide.steps + ")" : "")
     : "表示中: スコア画面";
   document.getElementById("slerr").textContent = s.slErr || "";
   document.querySelectorAll(".card").forEach(row => {
@@ -158,7 +159,7 @@ buildList();
 /* ---- ボタン/キー操作 ---- */
 document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => { send({ type: "cmd", cmd: b.dataset.cmd }); b.blur(); });
 const keyMap = { KeyT: "set", Enter: "start", NumpadEnter: "start", Space: "pause", ArrowLeft: "closeEm", F4: "begin", F12: "final", Digit0: "clear", Numpad0: "clear" };
-const slideKeys = { PageDown: "slNext", PageUp: "slBack", Home: "slFirst" };   // スライド用(タイマー操作と別のキー)
+const slideKeys = { PageDown: "slNext", PageUp: "slBack", Home: "slFirst", KeyE: "endStart" };   // スライド用(タイマー操作と別のキー)
 document.addEventListener("keydown", e => {
   if (e.code === "Escape") { document.getElementById("settingsH").scrollIntoView({ behavior: "smooth" }); totalIn.focus(); return; }
   if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;

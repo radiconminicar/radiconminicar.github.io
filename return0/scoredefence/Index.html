@@ -12,7 +12,11 @@
   #slider.v-slides { transform:translateX(0); }
   #slider.em { transform:translateX(-200vw); }
   #slides { background:#111; }
-  #slidesFrame { display:block; width:100%; height:100%; border:0; pointer-events:none; }
+  #slidesFrame, #endFrame { display:block; width:100%; height:100%; border:0; pointer-events:none; }
+  /* 後説スライド(Eキー)。スコア画面の上に右からスライドして重なる */
+  #endScr { position:fixed; inset:0; background:#111; transform:translateX(100%); transition:transform .7s ease-in-out; z-index:3; }
+  #endScr.on { transform:translateX(0); }
+  #slider.em ~ #endScr { transform:translateX(100%); }
   .screen { width:100vw; height:100%; flex:none; position:relative; box-sizing:border-box; }
   #main { display:flex; flex-direction:column; }
   .grid { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; background:#000; min-height:0; }
@@ -56,6 +60,7 @@
     <div id="emhead"><div id="emlabel">緊急ミッション</div><div id="emtimer">01:00</div></div>
   </div>
 </div>
+<div id="endScr"><iframe id="endFrame" src="slides_end.html" title="slides_end" tabindex="-1"></iframe></div>
 <div id="timer">--:--</div>
 <div id="status">読み込み中…</div>
 
@@ -259,47 +264,79 @@ function togglePause() {
 }
 function clearTimer() { stop(); paused = false; autoPaused = false; exitFinal(); endEmergency(); done.clear(); remaining = null; render(); }
 
-/* ========== スライド(slides.html を iframe で参照) ========== */
-// slides.html は書き換えず、キー入力(Enter / ←)を iframe に送って進めます。
-// 最後のスライドの次で、スコア画面に切り替わります。
-const slideFrame = document.getElementById("slidesFrame");
-const sl = { ready: false, s: 1, t: 0, last: 1, steps: {}, view: "slides", err: "" };
-function slInit() {
+/* ========== スライド(slides.html / slides_end.html を iframe で参照) ========== */
+// スライドのHTMLは書き換えず、キー入力(Enter / ←)を iframe に送って進めます。
+// slides.html(前説)は最後のスライドの次でスコア画面に切り替わります。
+// slides_end.html(後説)はEキーで表示し、最後のスライドで止まります。
+const decks = {
+  slides: { frame: document.getElementById("slidesFrame"), file: "slides.html", ready: false, s: 1, t: 0, last: 1, steps: {}, err: "" },
+  end:    { frame: document.getElementById("endFrame"),    file: "slides_end.html", ready: false, s: 1, t: 0, last: 1, steps: {}, err: "" }
+};
+const sl = { view: "slides" };              // "slides" | "main" | "end"
+const curDeck = () => decks[sl.view] || null;
+function slInit(dk) {
   try {
-    const w = slideFrame.contentWindow, d = slideFrame.contentDocument;
-    if (!d || typeof w.__go !== "function") throw new Error("slides.html を読み込み中");
+    const w = dk.frame.contentWindow, d = dk.frame.contentDocument;
+    if (!d || typeof w.__go !== "function") throw new Error(dk.file + " を読み込み中");
     const src = [...d.scripts].map(x => x.textContent).join("\n");
     const m1 = src.match(/var\s+STEPS\s*=\s*(\{[^}]*\})/), m2 = src.match(/var\s+LAST\s*=\s*(\d+)/);
-    if (!m1 || !m2) throw new Error("slides.html の STEPS/LAST が見つかりません");
-    sl.steps = JSON.parse(m1[1].replace(/(\d+)\s*:/g, '"$1":'));
-    sl.last = +m2[1]; sl.ready = true; sl.err = "";
+    if (!m1 || !m2) throw new Error(dk.file + " の STEPS/LAST が見つかりません");
+    dk.steps = JSON.parse(m1[1].replace(/(\d+)\s*:/g, '"$1":'));
+    dk.last = +m2[1]; dk.ready = true; dk.err = "";
   } catch (e) {
-    sl.ready = false;
-    sl.err = (e && e.name === "SecurityError") ? "スライド連携不可(file://ではなくGitHub Pagesかローカルサーバーで開いてください)" : e.message;
+    dk.ready = false;
+    dk.err = (e && e.name === "SecurityError") ? "スライド連携不可(file://ではなくGitHub Pagesかローカルサーバーで開いてください)" : e.message;
   }
 }
-slideFrame.addEventListener("load", slInit);
-const slWait = setInterval(() => { if (sl.ready) clearInterval(slWait); else slInit(); }, 500);
-function slKey(key) {
-  const w = slideFrame.contentWindow;
+Object.values(decks).forEach(dk => {
+  dk.frame.addEventListener("load", () => slInit(dk));
+  const wait = setInterval(() => { if (dk.ready) clearInterval(wait); else slInit(dk); }, 500);
+});
+function slKey(dk, key) {
+  const w = dk.frame.contentWindow;
   w.dispatchEvent(new w.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
 }
-function setView(v) { sl.view = v; slider.classList.toggle("v-slides", v === "slides"); }
+function setView(v) {
+  sl.view = v;
+  slider.classList.toggle("v-slides", v === "slides");
+  document.getElementById("endScr").classList.toggle("on", v === "end");
+}
 function slNext() {
-  if (!sl.ready || sl.view !== "slides") return;
-  if (sl.t < (sl.steps[sl.s] || 0)) { sl.t++; slKey("Enter"); }
-  else if (sl.s < sl.last) { sl.s++; sl.t = 0; slKey("Enter"); }
-  else setView("main");                    // 最後のスライドが終わったらスコア画面へ
+  const dk = curDeck();
+  if (!dk || !dk.ready) return;
+  if (dk.t < (dk.steps[dk.s] || 0)) { dk.t++; slKey(dk, "Enter"); }
+  else if (dk.s < dk.last) { dk.s++; dk.t = 0; slKey(dk, "Enter"); }
+  else if (sl.view === "slides") setView("main");   // 前説の最後が終わったらスコア画面へ
 }
 function slBack() {
-  if (!sl.ready || sl.view !== "slides") return;
-  if (sl.t > 0) { sl.t--; slKey("ArrowLeft"); }
-  else if (sl.s > 1) { sl.s--; sl.t = sl.steps[sl.s] || 0; slKey("ArrowLeft"); }
+  const dk = curDeck();
+  if (!dk || !dk.ready) return;
+  if (dk.t > 0) { dk.t--; slKey(dk, "ArrowLeft"); }
+  else if (dk.s > 1) { dk.s--; dk.t = dk.steps[dk.s] || 0; slKey(dk, "ArrowLeft"); }
 }
-function showSlides() {                    // 1枚目から表示し直す
-  sl.s = 1; sl.t = 0;
-  if (sl.ready) slideFrame.contentWindow.__go(1, 0);
-  setView("slides");
+function showDeck(v) {                     // 1枚目から表示し直す
+  const dk = decks[v];
+  dk.s = 1; dk.t = 0;
+  if (dk.ready) dk.frame.contentWindow.__go(1, 0);
+  setView(v);
+}
+const showSlides = () => showDeck("slides");
+const showEnd = () => showDeck("end");
+
+/* ========== 操作画面(control.html)を開く ========== */
+// 既に開いていれば再読み込みせずにそのまま使う
+function openControl() {
+  const w = window.open("", "sb_control", "width=980,height=860");
+  if (!w) return false;                    // ポップアップがブロックされた
+  w.focus();
+  try { if (w.location.href === "about:blank") w.location.href = new URL("control.html", location.href).href; }
+  catch (e) { w.location.href = "control.html"; }
+  return true;
+}
+// 起動時に自動で開く。ブラウザにブロックされた場合は最初のキー/クリック時に開く
+if (!openControl()) {
+  const retry = () => { removeEventListener("keydown", retry, true); removeEventListener("mousedown", retry, true); openControl(); };
+  addEventListener("keydown", retry, true); addEventListener("mousedown", retry, true);
 }
 
 /* ========== 操作画面(control.html)との連携 ========== */
@@ -309,7 +346,8 @@ function publish() {
   ch.postMessage({ type: "state", remaining, running: !!tick, paused,
     em: emActive ? { id: emActive.id, phase: emPhase, left: emPhase === "announce" ? emActive.dur : emTick ? Math.max(0, Math.round((emEnd - Date.now()) / 1000)) : emLeft } : null, final: finalMode,
     done: [...done], status: document.getElementById("status").textContent,
-    view: sl.view, slide: sl.ready ? { s: sl.s, t: sl.t, steps: sl.steps[sl.s] || 0, last: sl.last } : null, slErr: sl.err });
+    view: sl.view, slide: curDeck()?.ready ? { s: curDeck().s, t: curDeck().t, steps: curDeck().steps[curDeck().s] || 0, last: curDeck().last } : null,
+    slErr: [decks.slides.err, decks.end.err].filter(Boolean).join(" / ") });
 }
 if (ch) ch.onmessage = e => {
   const d = e.data;
@@ -323,7 +361,8 @@ if (ch) ch.onmessage = e => {
     else if (d.cmd === "final") toggleFinal();
     else if (d.cmd === "slNext") slNext();
     else if (d.cmd === "slBack") slBack();
-    else if (d.cmd === "slFirst") showSlides();
+    else if (d.cmd === "slFirst") showDeck(sl.view === "end" ? "end" : "slides");
+    else if (d.cmd === "endStart") showEnd();
     else if (d.cmd === "slExit") setView("main");
     else if (d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
   } else if (d.type === "cfg") loadCfg();
@@ -336,14 +375,15 @@ document.addEventListener("keydown", e => {
   if (e.key === "F1") { e.preventDefault(); document.body.classList.toggle("debug"); return; }
   // e.code を使うので、IMEオン/Caps Lockでも動きます
   if (e.code === "Space" || e.code === "F4" || e.code === "F12") e.preventDefault();
-  // スライド画面では slides.html の操作(Enter/Space/→/↓/PageDown=進む、Backspace/←/↑/PageUp=戻る、F=全画面)を適用
-  if (sl.view === "slides" && !emActive) {
+  // スライド画面(前説/後説)では slides.html の操作(Enter/Space/→/↓/PageDown=進む、Backspace/←/↑/PageUp=戻る、F=全画面)を適用
+  if (curDeck() && !emActive) {
     if (["Enter", "NumpadEnter", "Space", "ArrowRight", "ArrowDown", "PageDown"].includes(e.code)) { e.preventDefault(); if (!e.repeat) slNext(); return; }
     if (["Backspace", "ArrowLeft", "ArrowUp", "PageUp"].includes(e.code)) { e.preventDefault(); if (!e.repeat) slBack(); return; }
     if (e.code === "KeyF") { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); return; }
   }
-  if (e.code === "Home") { e.preventDefault(); showSlides(); return; }
-  if (e.code === "Escape") window.open("control.html", "sb_control", "width=980,height=860");
+  if (e.code === "Home") { e.preventDefault(); showDeck(sl.view === "end" ? "end" : "slides"); return; }
+  if (e.code === "KeyE") { if (!e.repeat) showEnd(); return; }
+  if (e.code === "Digit1" || e.code === "Numpad1") openControl();
   else if (e.code === "KeyT") setTimer();
   else if (e.code === "Enter" || e.code === "NumpadEnter") startTimer();
   else if (e.code === "Space") togglePause();
