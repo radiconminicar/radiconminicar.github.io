@@ -44,6 +44,7 @@
 <h2>BGM</h2>
 <div class="btns" style="margin-top:0">
   <button data-cmd="bgm">M BGM 再生/停止</button>
+  <label>音量 <input type="range" id="bgmVol" min="0" max="100" step="1" value="50" style="width:200px;vertical-align:middle"> <span id="bgmVolVal">50</span>%</label>
   <span id="bgmstate" class="hint"></span>
 </div>
 <div class="btns">
@@ -149,6 +150,7 @@ function updateStatus(s) {
     : "表示中: スコア画面";
   document.getElementById("slerr").textContent = s.slErr || "";
   if (s.bgm) {
+    if (typeof s.bgm.vol === "number" && !volDragging) { volIn.value = Math.round(s.bgm.vol * 100); volVal.textContent = volIn.value; }
     document.getElementById("bgmstate").textContent = s.bgm.on
       ? "再生中: " + String(s.bgm.track || "").replace(/^music\//, "") + (s.bgm.manual ? "(手動)" : "(自動)") : "停止中";
     document.getElementById("bgmerr").textContent = s.bgm.on && s.bgm.blocked
@@ -182,6 +184,11 @@ bgmSel.innerHTML = "";
 BGM_LIST.forEach(n => {
   const o = document.createElement("option"); o.value = "music/" + n; o.textContent = n; bgmSel.appendChild(o);
 });
+const volIn = document.getElementById("bgmVol"), volVal = document.getElementById("bgmVolVal");
+let volDragging = false;
+volIn.addEventListener("pointerdown", () => volDragging = true);
+addEventListener("pointerup", () => { volDragging = false; volIn.blur(); });
+volIn.oninput = () => { volVal.textContent = volIn.value; send({ type: "cmd", cmd: "bgmVol", vol: volIn.value / 100 }); };
 document.getElementById("bgmPlayBtn").onclick = e => { if (bgmSel.value) send({ type: "cmd", cmd: "bgmPlay", file: bgmSel.value }); e.target.blur(); };
 
 /* ---- ボタン/キー操作 ---- */
