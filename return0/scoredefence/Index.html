@@ -343,7 +343,13 @@ function showDeck(v) {                     // 1枚目から表示し直す
   setView(v);
 }
 const showSlides = () => showDeck("slides");
-const showEnd = () => showDeck("end");
+// 後説スライドへ(E): 前回スコア画面に戻ったときの位置から再開する(初回は1枚目から)。最初からはHome
+function showEnd() {
+  const dk = decks.end;
+  if (sl.view === "end") return;
+  if (dk.ready) dk.frame.contentWindow.__go(dk.s, dk.t);
+  setView("end");
+}
 
 /* ========== BGM ========== */
 // 自動選曲(優先順):
