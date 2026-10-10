@@ -68,9 +68,8 @@
 <h2 id="settingsH">設定 <span class="hint">(Escapeキーでここに移動)</span></h2>
 <div>全体タイマー(Tでセットされる時間): <input type="number" id="totalMin" min="1" style="width:70px"> 分</div>
 <h2>緊急ミッション</h2>
-<p class="hint">「残り」が全体タイマーの残り時間です。その値以下になると発動します。画像は、同じフォルダに置いたファイルの相対パス(例: images/m1.png)か、アップロードで指定できます。</p>
+<p class="hint">緊急ミッションは4回で固定です。「残り」が全体タイマーの残り時間です。その値以下になると発動します。画像は、同じフォルダに置いたファイルの相対パス(例: images/m1.png)か、アップロードで指定できます。</p>
 <div id="list"></div>
-<button id="addBtn">＋ 緊急ミッションを追加</button>
 
 <script>
 const ch = new BroadcastChannel("scoreboard");
@@ -86,6 +85,10 @@ function parseMS(t) {
 let cfg;
 try { cfg = JSON.parse(localStorage.getItem("sb_cfg")); } catch (e) {}
 if (!cfg || !Array.isArray(cfg.missions)) cfg = { total: 3600, missions: [] };
+// 緊急ミッションは4回で固定(スコアボード側 Index.html の EM_COUNT / DEFAULT_CFG と合わせる)
+const EM_COUNT = 4, EM_DEFAULT_AT = [2880, 2160, 1440, 720];
+cfg.missions = cfg.missions.slice(0, EM_COUNT);
+for (let i = cfg.missions.length; i < EM_COUNT; i++) cfg.missions.push({ at: EM_DEFAULT_AT[i], dur: 60, img: "" });
 cfg.missions.forEach(m => { m.id = m.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6); });
 function save() {
   try { localStorage.setItem("sb_cfg", JSON.stringify(cfg)); } catch (e) { alert("保存できませんでした(アップロード画像が大きすぎる可能性があります)。画像はパス指定がおすすめです。"); return; }
@@ -108,7 +111,7 @@ function buildList() {
       ${isData ? `<span class="hint">(アップロード済み)</span>` : ""}
       <button class="rmimg">画像削除</button>
       <span class="stat"></span>
-      <button class="test">テスト表示</button><button class="del">削除</button>`;
+      <button class="test">テスト表示</button>`;
     row.querySelector(".at").onchange = e => { const v = parseMS(e.target.value); if (v !== null) m.at = v; e.target.value = fmt(m.at); save(); };
     row.querySelector(".dur").onchange = e => { m.dur = Math.max(1, +e.target.value || 60); e.target.value = m.dur; save(); };
     row.querySelector(".path").onchange = e => { m.img = e.target.value.trim(); save(); buildList(); };
@@ -120,15 +123,10 @@ function buildList() {
     };
     row.querySelector(".rmimg").onclick = () => { m.img = ""; save(); buildList(); };
     row.querySelector(".test").onclick = () => send({ type: "cmd", cmd: "test", id: m.id });
-    row.querySelector(".del").onclick = () => { cfg.missions.splice(i, 1); save(); buildList(); };
     listEl.appendChild(row);
   });
   if (last) updateStatus(last);
 }
-document.getElementById("addBtn").onclick = () => {
-  cfg.missions.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at: 600, dur: 60, img: "" });
-  save(); buildList();
-};
 save(); // idを保存
 
 /* ---- 状態表示 ---- */
@@ -143,6 +141,7 @@ function updateStatus(s) {
   document.getElementById("upd").textContent = s.status;
   const info = [];
   if (s.em) info.push(s.em.phase === "announce" ? "緊急ミッション予告中(F4で出題)" : "緊急ミッション表示中 残り " + fmt(s.em.left));
+  if (s.emTotal) info.push("緊急ミッション終了 " + s.emDone + "/" + s.emTotal);
   if (s.final) info.push("最終スコア表示中");
   document.getElementById("emnow").textContent = info.join(" / ");
   document.getElementById("slstate").textContent = s.view === "slides" || s.view === "end"

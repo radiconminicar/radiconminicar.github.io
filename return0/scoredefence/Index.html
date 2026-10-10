@@ -158,15 +158,21 @@ function addConfetti(i) {
 }
 
 /* ========== 設定(localStorage。操作画面control.htmlと共有) ========== */
+// 緊急ミッションは EM_COUNT 回で固定(足りなければ既定値で補い、多ければ切り捨てる)
+const EM_COUNT = 4;
 const DEFAULT_CFG = { total: 3600, missions: [
-  { at: 2400, dur: 60, img: "" },   // 残り40:00
-  { at: 1200, dur: 60, img: "" }    // 残り20:00
+  { at: 2880, dur: 60, img: "" },   // 残り48:00
+  { at: 2160, dur: 60, img: "" },   // 残り36:00
+  { at: 1440, dur: 60, img: "" },   // 残り24:00
+  { at: 720,  dur: 60, img: "" }    // 残り12:00
 ]};
 let cfg;
 function loadCfg() {
   let c = null;
   try { c = JSON.parse(localStorage.getItem("sb_cfg")); } catch (e) {}
   if (!c || !Array.isArray(c.missions)) c = JSON.parse(JSON.stringify(DEFAULT_CFG));
+  c.missions = c.missions.slice(0, EM_COUNT);
+  for (let i = c.missions.length; i < EM_COUNT; i++) c.missions.push({ ...DEFAULT_CFG.missions[i] });
   c.missions.forEach(m => { m.id = m.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6); });
   cfg = c;
   try { localStorage.setItem("sb_cfg", JSON.stringify(cfg)); } catch (e) {}
@@ -177,16 +183,26 @@ const fmt = s => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 
 /* ========== 緊急ミッション ========== */
 const slider = document.getElementById("slider");
 const emTimer = document.getElementById("emtimer");
-let emActive = null, emTick = null, emEnd = 0, done = new Set();
+let emActive = null, emTick = null, emEnd = 0, done = new Set(), finished = new Set(), emNo = 0;
 
-let emPhase = null, autoPaused = false;
+let emPhase = null;
 const emScreen = document.getElementById("em");
-// 予告画面を出し、全体タイマーを一時停止する
+// 緊急ミッションの進み具合(BGMの切り替えなどに使う)
+const emFlags = {
+  get total() { return EM_COUNT; },                         // 緊急ミッションの回数(4)
+  get started() { return done.size; },                      // 発動した数(予告画面が出た時点で+1)
+  get finished() { return finished.size; },                 // 終了した数
+  get current() { return emActive ? emNo : 0; },            // 表示中のミッションが何回目か(1〜4)。表示中でなければ0
+  get announcing() { return emPhase === "announce"; },      // 「緊急ミッションが出るぞ！」の予告画面中
+  get running() { return emPhase === "running"; },          // ミッション出題中
+  get isLast() { return !!emActive && emNo === EM_COUNT; }, // 最後(4回目)のミッションを表示中
+  get afterLast() { return finished.size >= EM_COUNT; }     // 最後のミッションまで全部終わった
+};
+// 予告画面を出す(全体タイマーは止めない)
 function startEmergency(m) {
   done.add(m.id);
-  emActive = m; emPhase = "announce";
+  emActive = m; emPhase = "announce"; emNo = done.size;
   clearInterval(emTick); emTick = null;
-  if (tick) { remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000)); stop(); paused = true; autoPaused = true; render(); }
   const body = document.getElementById("embody");
   body.innerHTML = "";
   const d = document.createElement("div"); d.id = "emtext"; d.className = "warn"; d.textContent = "緊急ミッションが出るぞ！";
@@ -195,11 +211,10 @@ function startEmergency(m) {
   slider.classList.add("em");
   bgmUpdate();
 }
-// F4: ミッションを出題し、緊急ミッションのタイマーを開始(全体タイマーも再開)
+// F4: ミッションを出題し、緊急ミッションのタイマーを開始
 function beginEmergency() {
   if (emPhase !== "announce" || !emActive) return;
-  const m = emActive, n = cfg.missions.indexOf(m) + 1;
-  if (autoPaused) { autoPaused = false; startTimer(); }
+  const m = emActive, n = emNo;
   emPhase = "running";
   document.getElementById("emlabel").textContent = "緊急ミッション " + n;
   const body = document.getElementById("embody");
@@ -208,7 +223,8 @@ function beginEmergency() {
   else { const d = document.createElement("div"); d.id = "emtext"; d.textContent = "緊急ミッション " + n; body.appendChild(d); }
   emTimer.textContent = fmt(m.dur);
   emScreen.classList.remove("announce");
-  runEm(m.dur);
+  if (paused) { emLeft = m.dur; emTimer.textContent = fmt(m.dur); }   // 一時停止中なら再開時にカウント開始
+  else runEm(m.dur);
 }
 function runEm(sec) {
   emEnd = Date.now() + sec * 1000;
@@ -220,10 +236,10 @@ function runEm(sec) {
   }, 250);
 }
 function endEmergency() {
+  if (emActive) finished.add(emActive.id);
   clearInterval(emTick); emTick = null; emActive = null; emPhase = null;
   emScreen.classList.remove("announce");
   slider.classList.remove("em");
-  if (autoPaused) { autoPaused = false; startTimer(); }   // 予告中に閉じたら全体タイマーを再開
   bgmUpdate();
 }
 function checkMissions() {
@@ -242,7 +258,7 @@ function render() {
   timerEl.classList.toggle("paused", paused);
 }
 function stop() { clearInterval(tick); tick = null; }
-function setTimer() { stop(); paused = false; autoPaused = false; exitFinal(); endEmergency(); done.clear(); remaining = cfg.total; render(); }
+function setTimer() { stop(); paused = false; exitFinal(); endEmergency(); done.clear(); finished.clear(); remaining = cfg.total; render(); }
 function startTimer() {
   if (tick || remaining === null || remaining <= 0) return;
   paused = false;
@@ -257,15 +273,15 @@ function startTimer() {
 }
 function togglePause() {
   if (paused) { startTimer(); return; }
-  if (!tick || emPhase === "announce") return;
+  if (!tick) return;
   remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
-  if (emActive) {
+  if (emActive && emPhase === "running") {
     emLeft = Math.max(0, Math.round((emEnd - Date.now()) / 1000));
     clearInterval(emTick); emTick = null;
   }
   stop(); paused = true; render();
 }
-function clearTimer() { stop(); paused = false; autoPaused = false; exitFinal(); endEmergency(); done.clear(); remaining = null; render(); }
+function clearTimer() { stop(); paused = false; exitFinal(); endEmergency(); done.clear(); finished.clear(); remaining = null; render(); }
 
 /* ========== スライド(slides.html / slides_end.html を iframe で参照) ========== */
 // スライドのHTMLは書き換えず、キー入力(Enter / ←)を iframe に送って進めます。
@@ -345,16 +361,12 @@ function bgmTrack(file) {
   return bgm.tracks[file];
 }
 Object.values(BGM_FILES).forEach(bgmTrack);
-function allMissionsDone() {
-  const ms = cfg.missions.filter(m => m.at > 0);
-  return ms.length > 0 && ms.every(m => done.has(m.id));
-}
 function bgmAutoKey() {
   if (emActive) return "emergency";
   if (sl.view === "slides") return decks.slides.s === 1 ? "entry" : "pre";
   if (sl.view === "end") return "end";
   if (finalMode) return "bestteam";
-  return allMissionsDone() ? "last10" : "game";
+  return emFlags.afterLast ? "last10" : "game";
 }
 function bgmWant() {
   const key = bgmAutoKey();
@@ -424,7 +436,7 @@ function publish() {
   if (!ch) return;
   ch.postMessage({ type: "state", remaining, running: !!tick, paused,
     em: emActive ? { id: emActive.id, phase: emPhase, left: emPhase === "announce" ? emActive.dur : emTick ? Math.max(0, Math.round((emEnd - Date.now()) / 1000)) : emLeft } : null, final: finalMode,
-    done: [...done], status: document.getElementById("status").textContent,
+    done: [...done], emDone: finished.size, emTotal: EM_COUNT, status: document.getElementById("status").textContent,
     view: sl.view, slide: curDeck()?.ready ? { s: curDeck().s, t: curDeck().t, steps: curDeck().steps[curDeck().s] || 0, last: curDeck().last } : null,
     slErr: [decks.slides.err, decks.end.err].filter(Boolean).join(" / "),
     bgm: { on: bgm.on, track: bgm.cur, blocked: bgm.blocked, manual: !!bgm.manual } });
