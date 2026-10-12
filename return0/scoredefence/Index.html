@@ -481,14 +481,17 @@ if (ch) ch.onmessage = e => {
     else if (d.cmd === "bgmAuto") bgmAuto();
     else if (d.cmd === "slExit") setView("main");
     else if (d.cmd === "issue" || d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
+  } else if (d.type === "key") {                       // 操作画面で押されたキー
+    handleKey({ code: d.code, repeat: !!d.repeat, preventDefault() {} });
   } else if (d.type === "cfg") loadCfg();
   publish();
 };
 setInterval(publish, 500);
 
 /* ========== キー操作 ========== */
-document.addEventListener("keydown", e => {
-  if (e.key === "F1") { e.preventDefault(); document.body.classList.toggle("debug"); return; }
+// 操作画面(control.html)で押したキーも {type:"key"} で届き、ここと同じ処理をする
+function handleKey(e) {
+  if (e.code === "F1") { e.preventDefault(); document.body.classList.toggle("debug"); return; }
   // e.code を使うので、IMEオン/Caps Lockでも動きます
   if (e.code === "Space" || e.code === "F4" || e.code === "F12") e.preventDefault();
   // スライド画面(前説/後説)では slides.html の操作(Enter/Space/→/↓/PageDown=進む、Backspace/←/↑/PageUp=戻る、F=全画面)を適用
@@ -508,7 +511,8 @@ document.addEventListener("keydown", e => {
   else if (e.code === "Digit0" || e.code === "Numpad0") clearTimer();
   else if (e.code === "F4") beginEmergency();
   else if (e.code === "F12") toggleFinal();
-});
+}
+document.addEventListener("keydown", handleKey);
 document.addEventListener("keyup", () => publish());   // 操作直後に操作画面のプレビューを更新
 </script>
 </body>

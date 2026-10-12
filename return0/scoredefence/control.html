@@ -238,13 +238,15 @@ document.getElementById("bgmPlayBtn").onclick = e => { if (bgmSel.value) send({ 
 
 /* ---- ボタン/キー操作 ---- */
 document.querySelectorAll("[data-cmd]").forEach(b => b.onclick = () => { send({ type: "cmd", cmd: b.dataset.cmd }); b.blur(); });
-const keyMap = { KeyT: "set", Enter: "start", NumpadEnter: "start", Space: "pause", ArrowLeft: "closeEm", F4: "begin", F12: "final", KeyM: "bgm", Digit0: "clear", Numpad0: "clear" };
-const slideKeys = { PageDown: "slNext", PageUp: "slBack", Home: "slFirst", KeyE: "endStart" };   // スライド用(タイマー操作と別のキー)
+// ここで押したキーはそのままスコアボードに送り、スコアボードで押したのと同じ動きをする
+// (前説/後説中の Enter/Space/→ でスライドを進める、なども同じ)。F(全画面)と 1(操作画面を開く)は送らない
+const FORWARD_KEYS = new Set(["Enter", "NumpadEnter", "Space", "ArrowRight", "ArrowDown", "PageDown", "Backspace", "ArrowLeft", "ArrowUp", "PageUp",
+  "Home", "KeyE", "KeyM", "KeyT", "Digit0", "Numpad0", "F1", "F4", "F12"]);
 document.addEventListener("keydown", e => {
   if (e.code === "Escape") { document.getElementById("settingsH").scrollIntoView({ behavior: "smooth" }); totalIn.focus(); return; }
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-  if (slideKeys[e.code]) { e.preventDefault(); send({ type: "cmd", cmd: slideKeys[e.code] }); return; }
-  if (keyMap[e.code]) { e.preventDefault(); document.activeElement?.blur(); send({ type: "cmd", cmd: keyMap[e.code] }); }
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  if (FORWARD_KEYS.has(e.code)) { e.preventDefault(); document.activeElement?.blur(); send({ type: "key", code: e.code, repeat: e.repeat }); }
 });
 </script>
 </body>
