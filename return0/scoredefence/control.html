@@ -22,6 +22,16 @@
   .stat { font-weight:700; min-width:110px; }
   .hint { color:#555; font-size:13px; }
   .off { color:#dc2626; font-weight:700; }
+  /* スライドのプレビュー(前説/後説中のみ表示) */
+  .pvwrap { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; }
+  .pv { flex:1 1 340px; min-width:0; }
+  .pvlabel { font-weight:700; margin-bottom:4px; }
+  .pvlabel span { font-weight:400; color:#555; font-size:13px; margin-left:6px; }
+  .pvbox { position:relative; aspect-ratio:16/10; background:#111; border:2px solid #000; border-radius:6px; overflow:hidden; }
+  .pv.cur .pvbox { border-color:#dc2626; }
+  .pvbox iframe { position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none; }
+  .pvmsg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; font-weight:700; }
+  .pvwrap[hidden], .pvmsg[hidden], .pvbox iframe[hidden] { display:none; }
 </style>
 </head>
 <body>
@@ -65,6 +75,10 @@
   <span id="slstate" class="hint"></span>
 </div>
 <div id="slerr" class="off"></div>
+<div id="preview" class="pvwrap" hidden>
+  <div class="pv cur"><div class="pvlabel">現在のスライド<span id="pvCurLbl"></span></div><div class="pvbox" id="pvCur"></div></div>
+  <div class="pv"><div class="pvlabel">次のスライド<span id="pvNextLbl"></span></div><div class="pvbox" id="pvNext"><div class="pvmsg" id="pvNextMsg" hidden></div></div></div>
+</div>
 
 <h2 id="settingsH">設定 <span class="hint">(Escapeキーでここに移動)</span></h2>
 <div>全体タイマー(Tでセットされる時間): <input type="number" id="totalMin" min="1" style="width:70px"> 分</div>
@@ -142,6 +156,7 @@ function updateStatus(s) {
     ? "表示中: " + (s.view === "end" ? "後説" : "前説") + "スライド" + (s.slide ? " " + s.slide.s + "/" + s.slide.last + "(ステップ " + s.slide.t + "/" + s.slide.steps + ")" : "")
     : "表示中: スコア画面";
   document.getElementById("slerr").textContent = s.slErr || "";
+  updatePreview(s);
   if (s.bgm) {
     if (typeof s.bgm.vol === "number" && !volDragging) { volIn.value = Math.round(s.bgm.vol * 100); volVal.textContent = volIn.value; }
     document.getElementById("bgmstate").textContent = s.bgm.on
@@ -155,6 +170,43 @@ function updateStatus(s) {
     row.classList.toggle("active", !!active);
     st.textContent = active ? (s.em.phase === "announce" ? "予告中" : "表示中 " + fmt(s.em.left)) : s.done.includes(id) ? "出題済み" : "未出題";
   });
+}
+/* ---- スライドのプレビュー ----
+   スコアボードと同じスライドを小さく表示する。「次」= 次に進めたときの状態(同じスライドの次のクリック、または次のスライド) */
+const PV_FILES = { slides: "slides.html", end: "slides_end.html" };
+const pvCur = document.getElementById("pvCur"), pvNext = document.getElementById("pvNext"), pvNextMsg = document.getElementById("pvNextMsg");
+function pvFrame(box, deck) {                // デッキごとのiframeを必要になったときに作る
+  let f = box.querySelector(`iframe[data-deck="${deck}"]`);
+  if (!f) { f = document.createElement("iframe"); f.dataset.deck = deck; f.src = PV_FILES[deck]; f.tabIndex = -1; f.title = deck; box.prepend(f);
+    f.onload = () => { try { const h = f.contentDocument.getElementById("hint"); if (h) h.hidden = true; } catch (e) {} };   // 操作説明の表示は消す
+  }
+  return f;
+}
+function pvGo(f, s, t) {
+  try { const w = f.contentWindow; if (w && typeof w.__go === "function") w.__go(s, t); } catch (e) {}
+}
+const pvLabel = (s, t, sl) => ` ${s}/${sl.last}枚目` + (sl.steps ? `(クリック ${t}/${sl.steps})` : "");
+function updatePreview(s) {
+  const show = (s.view === "slides" || s.view === "end") && !!s.slide;
+  document.getElementById("preview").hidden = !show;
+  if (!show) return;
+  const d = s.view, sl = s.slide;
+  const cur = pvFrame(pvCur, d), nxt = pvFrame(pvNext, d);
+  [...pvCur.querySelectorAll("iframe"), ...pvNext.querySelectorAll("iframe")].forEach(f => f.hidden = f.dataset.deck !== d);
+  pvGo(cur, sl.s, sl.t);
+  document.getElementById("pvCurLbl").textContent = pvLabel(sl.s, sl.t, sl);
+  let n = null;
+  if (sl.t < sl.steps) n = [sl.s, sl.t + 1, true];        // 同じスライドの次のクリック
+  else if (sl.s < sl.last) n = [sl.s + 1, 0, false];      // 次のスライド
+  if (n) {
+    pvGo(nxt, n[0], n[1]);
+    nxt.hidden = false; pvNextMsg.hidden = true;
+    document.getElementById("pvNextLbl").textContent = n[2] ? pvLabel(n[0], n[1], sl) + " ※同じスライド" : ` ${n[0]}/${sl.last}枚目`;
+  } else {
+    nxt.hidden = true; pvNextMsg.hidden = false;
+    pvNextMsg.textContent = d === "slides" ? "次はスコア画面" : "最後のスライドです";
+    document.getElementById("pvNextLbl").textContent = "";
+  }
 }
 ch.onmessage = e => {
   if (e.data.type !== "state") return;

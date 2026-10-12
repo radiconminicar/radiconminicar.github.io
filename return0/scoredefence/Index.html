@@ -509,6 +509,7 @@ document.addEventListener("keydown", e => {
   else if (e.code === "F4") beginEmergency();
   else if (e.code === "F12") toggleFinal();
 });
+document.addEventListener("keyup", () => publish());   // 操作直後に操作画面のプレビューを更新
 </script>
 </body>
 </html>
