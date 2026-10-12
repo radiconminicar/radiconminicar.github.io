@@ -37,7 +37,7 @@
   <button data-cmd="pause">Space 一時停止/再開</button>
   <button data-cmd="clear">0 --:-- に戻す</button>
   <button data-cmd="closeEm">← 緊急ミッションを閉じる</button>
-  <button data-cmd="begin">F4 緊急ミッションを出題</button>
+  <button data-cmd="begin">F4 予告画面→ミッション表示</button>
   <button data-cmd="final">F12 最終スコア表示/戻す</button>
 </div>
 
@@ -69,18 +69,13 @@
 <h2 id="settingsH">設定 <span class="hint">(Escapeキーでここに移動)</span></h2>
 <div>全体タイマー(Tでセットされる時間): <input type="number" id="totalMin" min="1" style="width:70px"> 分</div>
 <h2>緊急ミッション</h2>
-<p class="hint">緊急ミッションは4回で固定です。「残り」が全体タイマーの残り時間です。その値以下になると発動します。画像は、同じフォルダに置いたファイルの相対パス(例: images/m1.png)か、アップロードで指定できます。</p>
+<p class="hint">緊急ミッションは4つで固定です。自動では出ません。「#n 出題」ボタンで予告画面(緊急ミッションが出るぞ！)を出し、F4でミッションを表示します。画像は、同じフォルダに置いたファイルの相対パス(例: images/m1.png)か、アップロードで指定できます。</p>
 <div id="list"></div>
 
 <script>
 const ch = new BroadcastChannel("scoreboard");
 const send = m => ch.postMessage(m);
 const fmt = s => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
-function parseMS(t) {
-  const p = String(t).trim().split(":").map(Number);
-  if (p.some(isNaN)) return null;
-  return p.length === 1 ? p[0] * 60 : p[0] * 60 + p[1];
-}
 
 /* ---- 設定 ---- */
 let cfg;
@@ -105,15 +100,13 @@ function buildList() {
     const isData = (m.img || "").startsWith("data:");
     const row = document.createElement("div"); row.className = "card"; row.dataset.id = m.id;
     row.innerHTML = `<b>#${i + 1}</b><div class="thumb">${m.img ? `<img src="${m.img}">` : "画像なし"}</div>
-      残り <input type="text" class="at" value="${fmt(m.at)}" title="mm:ss">
       表示 <input type="number" class="dur" min="1" value="${m.dur}">秒
       画像 <input type="text" class="path" placeholder="images/m1.png" value="${isData ? "" : (m.img || "")}">
       <input type="file" class="file" accept="image/*" style="width:190px">
       ${isData ? `<span class="hint">(アップロード済み)</span>` : ""}
       <button class="rmimg">画像削除</button>
       <span class="stat"></span>
-      <button class="test">テスト表示</button>`;
-    row.querySelector(".at").onchange = e => { const v = parseMS(e.target.value); if (v !== null) m.at = v; e.target.value = fmt(m.at); save(); };
+      <button class="issue" style="font-weight:700">#${i + 1} 出題</button>`;
     row.querySelector(".dur").onchange = e => { m.dur = Math.max(1, +e.target.value || 60); e.target.value = m.dur; save(); };
     row.querySelector(".path").onchange = e => { m.img = e.target.value.trim(); save(); buildList(); };
     row.querySelector(".file").onchange = e => {
@@ -123,7 +116,7 @@ function buildList() {
       r.readAsDataURL(f);
     };
     row.querySelector(".rmimg").onclick = () => { m.img = ""; save(); buildList(); };
-    row.querySelector(".test").onclick = () => send({ type: "cmd", cmd: "test", id: m.id });
+    row.querySelector(".issue").onclick = e => { send({ type: "cmd", cmd: "issue", id: m.id }); e.target.blur(); };
     listEl.appendChild(row);
   });
   if (last) updateStatus(last);
@@ -141,7 +134,7 @@ function updateStatus(s) {
     s.paused ? "一時停止中" : s.running ? "カウント中" : s.remaining === null ? "待機中(--:--)" : s.remaining === 0 ? "終了" : "セット済み(未開始)";
   document.getElementById("upd").textContent = s.status;
   const info = [];
-  if (s.em) info.push(s.em.phase === "announce" ? "緊急ミッション予告中(F4で出題)" : "緊急ミッション表示中 残り " + fmt(s.em.left));
+  if (s.em) info.push(s.em.phase === "announce" ? "緊急ミッション予告中(F4でミッションを表示)" : "緊急ミッション表示中 残り " + fmt(s.em.left));
   if (s.emTotal) info.push("緊急ミッション終了 " + s.emDone + "/" + s.emTotal);
   if (s.final) info.push("最終スコア表示中");
   document.getElementById("emnow").textContent = info.join(" / ");
@@ -160,7 +153,7 @@ function updateStatus(s) {
     const id = row.dataset.id, st = row.querySelector(".stat");
     const active = s.em && s.em.id === id;
     row.classList.toggle("active", !!active);
-    st.textContent = active ? (s.em.phase === "announce" ? "予告中" : "表示中 " + fmt(s.em.left)) : s.done.includes(id) ? "発動済み" : "待機";
+    st.textContent = active ? (s.em.phase === "announce" ? "予告中" : "表示中 " + fmt(s.em.left)) : s.done.includes(id) ? "出題済み" : "未出題";
   });
 }
 ch.onmessage = e => {

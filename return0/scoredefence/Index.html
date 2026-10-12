@@ -192,16 +192,16 @@ const emFlags = {
   get total() { return EM_COUNT; },                         // 緊急ミッションの回数(4)
   get started() { return done.size; },                      // 発動した数(予告画面が出た時点で+1)
   get finished() { return finished.size; },                 // 終了した数
-  get current() { return emActive ? emNo : 0; },            // 表示中のミッションが何回目か(1〜4)。表示中でなければ0
+  get current() { return emActive ? emNo : 0; },            // 表示中のミッションの番号(#1〜#4)。表示中でなければ0
   get announcing() { return emPhase === "announce"; },      // 「緊急ミッションが出るぞ！」の予告画面中
   get running() { return emPhase === "running"; },          // ミッション出題中
-  get isLast() { return !!emActive && emNo === EM_COUNT; }, // 最後(4回目)のミッションを表示中
-  get afterLast() { return finished.size >= EM_COUNT; }     // 最後のミッションまで全部終わった
+  get isLast() { return !!emActive && emNo === EM_COUNT; }, // 最後(#4)のミッションを表示中
+  get afterLast() { return finished.size >= EM_COUNT; }     // 4つとも出題して終わった
 };
-// 予告画面を出す(全体タイマーは止めない)
+// 予告画面を出す(操作画面の「#n 出題」ボタンから。全体タイマーは止めない)
 function startEmergency(m) {
   done.add(m.id);
-  emActive = m; emPhase = "announce"; emNo = done.size;
+  emActive = m; emPhase = "announce"; emNo = cfg.missions.indexOf(m) + 1;
   clearInterval(emTick); emTick = null;
   const body = document.getElementById("embody");
   body.innerHTML = "";
@@ -242,12 +242,6 @@ function endEmergency() {
   slider.classList.remove("em");
   bgmUpdate();
 }
-function checkMissions() {
-  if (emActive || remaining === null || remaining <= 0) return;
-  const due = cfg.missions.filter(m => !done.has(m.id) && m.at > 0 && remaining <= m.at)
-                          .sort((a, b) => b.at - a.at)[0];
-  if (due) startEmergency(due);
-}
 
 /* ========== メインタイマー ========== */
 const timerEl = document.getElementById("timer");
@@ -265,11 +259,11 @@ function startTimer() {
   endAt = Date.now() + remaining * 1000;
   tick = setInterval(() => {
     remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
-    render(); checkMissions();
+    render();
     if (remaining === 0) stop();
   }, 250);
   if (emActive && emPhase === "running") runEm(emLeft);
-  render(); checkMissions();
+  render();
 }
 function togglePause() {
   if (paused) { startTimer(); return; }
@@ -486,7 +480,7 @@ if (ch) ch.onmessage = e => {
     else if (d.cmd === "bgmPlay") playManual(d.file);
     else if (d.cmd === "bgmAuto") bgmAuto();
     else if (d.cmd === "slExit") setView("main");
-    else if (d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
+    else if (d.cmd === "issue" || d.cmd === "test") { const m = cfg.missions.find(x => x.id === d.id); if (m) startEmergency(m); }
   } else if (d.type === "cfg") loadCfg();
   publish();
 };
