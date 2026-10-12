@@ -360,6 +360,19 @@ const BGM_FILES = {
   entry: "music/bgm_entry.mp3", pre: "music/bgm_pre.mp3", game: "music/bgm_game.mp3", last10: "music/bgm_last10.mp3",
   emergency: "music/bgm_emergency.mp3", bestteam: "music/bgm_bestteam.mp3", end: "music/bgm_end.mp3"
 };
+// 曲ごとの音量補正(曲の音の大きさをそろえる)。一番小さい曲(bgm_pre)に合わせて、大きい曲を下げている
+// 値 = 10^((基準LUFS - その曲のLUFS)/20)。ここにない曲は 1(補正なし)
+const BGM_GAIN = {
+  "music/bgm_entry.mp3": 0.627,       // -9.71 LUFS
+  "music/bgm_pre.mp3": 1.0,         // -13.76 LUFS
+  "music/bgm_game.mp3": 0.628,        // -9.72 LUFS
+  "music/bgm_last10.mp3": 0.648,      // -9.99 LUFS
+  "music/bgm_emergency.mp3": 0.659,   // -10.14 LUFS
+  "music/bgm_bestteam.mp3": 0.607,    // -9.43 LUFS
+  "music/bgm_end.mp3": 0.518,         // -8.05 LUFS
+  "music/bgm_out.mp3": 0.625         // -9.68 LUFS
+};
+const bgmLevel = file => bgm.vol * (BGM_GAIN[file] ?? 1);
 const BGM_RESUME = new Set([BGM_FILES.game, BGM_FILES.last10]);   // スコア画面の曲は緊急ミッション明けに続きから
 const bgm = { on: true, cur: null, blocked: false, tracks: {}, manual: null, vol: 0.5 };   // vol: 音量(初期50%)
 try { const v = parseFloat(localStorage.getItem("sb_bgm_vol")); if (v >= 0 && v <= 1) bgm.vol = v; } catch (e) {}
@@ -402,7 +415,7 @@ function bgmUpdate() {
     // 自動再生がブロックされたら、この画面での次のキー/クリック時に再試行
     a.play().then(() => {
       bgm.blocked = false;
-      if (bgm.on && bgm.cur === want) bgmFade(a, bgm.vol, 500); else a.pause();   // 再生開始までに曲が切り替わった場合
+      if (bgm.on && bgm.cur === want) bgmFade(a, bgmLevel(want), 500); else a.pause();   // 再生開始までに曲が切り替わった場合
     }).catch(() => { bgm.blocked = true; });
   }
   if (want) bgm.cur = want;
@@ -412,7 +425,7 @@ function setBgmVolume(v) {
   bgm.vol = Math.min(1, Math.max(0, +v || 0));
   try { localStorage.setItem("sb_bgm_vol", bgm.vol); } catch (e) {}
   const a = bgm.on && bgm.cur && bgm.tracks[bgm.cur];
-  if (a && !a.paused) { clearInterval(a._fade); a.volume = bgm.vol; }   // 再生中の曲にすぐ反映
+  if (a && !a.paused) { clearInterval(a._fade); a.volume = bgmLevel(bgm.cur); }   // 再生中の曲にすぐ反映
 }
 function playManual(file) {
   if (!/^music\/[^\/]+\.mp3$/i.test(file)) return;
