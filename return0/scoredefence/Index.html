@@ -133,6 +133,18 @@ function toggleFinal() {
   document.body.appendChild(s);
 }
 function exitFinal() { if (!finalMode) return; finalMode = false; clearConfetti(); load(); bgmUpdate(); }
+// 最終スコア再表示(操作画面のボタン): 後説スライドや緊急ミッションからスコア画面に戻り、最終スコアを表示する。
+// BGMは今の曲のまま(手動選曲と同じ扱いなので、次に場面が変わると自動選曲に戻る)
+function reshowFinal() {
+  const keep = bgm.cur;
+  bgm.freeze = true;
+  endEmergency();
+  setView("main");
+  if (!finalMode) toggleFinal();
+  bgm.freeze = false;
+  if (keep) bgm.manual = { file: keep, base: bgmAutoKey() };
+  bgmUpdate();
+}
 function clearConfetti() { for (const k in cf) { cancelAnimationFrame(cf[k].raf); cf[k].cv.remove(); delete cf[k]; } }
 function addConfetti(i) {
   const cell = document.getElementById("s" + i).parentElement;
@@ -397,6 +409,7 @@ function bgmFade(a, to, ms, done) {
   }, 30);
 }
 function bgmUpdate() {
+  if (bgm.freeze) return;                  // reshowFinal() で画面を切り替えている途中
   const want = bgm.on ? bgmWant() : null;
   for (const f in bgm.tracks) {
     const a = bgm.tracks[f];
@@ -471,6 +484,7 @@ if (ch) ch.onmessage = e => {
     else if (d.cmd === "closeEm") endEmergency();
     else if (d.cmd === "begin") beginEmergency();
     else if (d.cmd === "final") toggleFinal();
+    else if (d.cmd === "finalShow") reshowFinal();
     else if (d.cmd === "slNext") slNext();
     else if (d.cmd === "slBack") slBack();
     else if (d.cmd === "slFirst") showDeck(sl.view === "end" ? "end" : "slides");
